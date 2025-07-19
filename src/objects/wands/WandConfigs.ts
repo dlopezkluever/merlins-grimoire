@@ -110,33 +110,33 @@ export const WAND_CONFIGS = {
   RAPIDWAND: {
     type: TYPE_RANGED,
     owner: OWNER_PLAYER,
-    damage: 10,
-    attackRate: 300, // 2 attacks per second (1000ms / 2)
-    spellSpeed: 300,
+    damage: 8,
+    attackRate: 200, // 5 attacks per second - high fire rate, lower damage
+    spellSpeed: 400,
     spellSprite: 'plain-spell-1',
-    spellWidth: 32,
-    spellHeight: 32,
+    spellWidth: 28,
+    spellHeight: 28,
     minDistance: 100,
-    maxDistance: 300,
+    maxDistance: 350,
     displayConfig: {
       sprite: 'wand-upgrade',
-      color: '0x888888' // Gray
+      color: '0x00ff00' // Green for rapid fire
     }
   },
   ELDERWAND: {
     type: TYPE_RANGED,
     owner: OWNER_PLAYER,
-    damage: 20,
-    attackRate: 150, // 4 attacks per second (1000ms / 4)
-    spellSpeed: 350,
+    damage: 35,
+    attackRate: 600, // 1.67 attacks per second - high damage, slower rate
+    spellSpeed: 500,
     spellSprite: 'plain-spell-1',
-    spellWidth: 32,
-    spellHeight: 32,
+    spellWidth: 40,
+    spellHeight: 40,
     minDistance: 100,
-    maxDistance: 300,
+    maxDistance: 400,
     displayConfig: {
       sprite: 'wand-upgrade',
-      color: '0xffffff' // Pure white
+      color: '0xffd700' // Gold for powerful elder wand
     }
   },
   SPELLBOT: {

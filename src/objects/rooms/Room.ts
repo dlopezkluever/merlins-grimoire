@@ -1,6 +1,6 @@
 import { Scene, GameObjects, Physics, Types } from 'phaser';
 import { Enemy } from '../enemy/Enemy';
-import { Door } from '../Door';
+// Door system removed - import { Door } from '../Door';
 import { EnemyFactory, EnemyType } from '../enemy/EnemyFactory';
 import { MainScene } from '../../scenes/MainScene';
 import { Barrel } from '../props/Barrel';
@@ -20,7 +20,7 @@ export class Room {
   private zone: GameObjects.Zone;
   private enemyTriggerZone: GameObjects.Zone | null = null;
   private enemies: Enemy[] = [];
-  private doors: Door[] = [];
+  // Door system removed - private doors: Door[] = [];
   private barrels: Barrel[] = [];
   private enemyTypes: Map<EnemyType, { count: number }> = new Map();
   private maxSpawns: Map<EnemyType, { maxSpawns: number, numberOfSpawns: number }> = new Map();
@@ -114,12 +114,13 @@ export class Room {
     return this.enemyTriggerZone;
   }
 
-  public addDoor(door: Door): void {
-    this.doors.push(door);
+  public addDoor(door: any): void {
+    // Door system removed - free exploration mode
   }
 
-  public getDoors(): Door[] {
-    return this.doors;
+  public getDoors(): any[] {
+    // Door system removed - free exploration mode
+    return [];
   }
 
   public addEnemy(enemy: Enemy): void {
@@ -166,7 +167,7 @@ export class Room {
     const spawnsLeft = this.getEnemyTypesToSpawn();
     if (allEnemiesDead && spawnsLeft.length === 0) {
       this.setState(RoomState.ROOM_CLEARED);
-      this.openDoors();
+      // Door system removed - free exploration mode
       this.enemies = [];
       return true;
     }
@@ -187,11 +188,7 @@ export class Room {
   }
 
   private openDoors(): void {
-    this.doors.forEach(door => {
-      if (!door.isDoorOpen()) {
-        door.open();
-      }
-    });
+    // Door system removed - free exploration mode
   }
 
   public isRoomCleared(): boolean {
@@ -260,15 +257,18 @@ export class Room {
   public destroy(): void {
     this.enemies.forEach(enemy => enemy.destroy());
     this.enemies = [];
-    this.zone.destroy();
+    if (this.zone) {
+      this.zone.destroy();
+    }
     this.scene.events.off(Enemy.ENEMY_DIED);
     this.scene.events.off(Barrel.SMASHED_EVENT);
 
     this.enemySpawner?.destroy();
-    this.doors.forEach(door => door.destroy());
-    this.doors = [];
-    this.barrels.forEach(barrel => barrel.destroy());
-    this.barrels = [];
+    // Door system removed - no doors to destroy
+    if (this.barrels && Array.isArray(this.barrels)) {
+      this.barrels.forEach(barrel => barrel.destroy());
+      this.barrels = [];
+    }
     this.enemyTypes.clear();
   }
 } 

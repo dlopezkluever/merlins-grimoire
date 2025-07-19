@@ -107,10 +107,27 @@ export class WandOverlay {
         // Update wand name
         this.wandName.setText(displayName);
 
-        // Format and update wand stats
+        // Format and update wand stats with enhanced descriptions
         const attackRate = (1000 / wand.attackRate).toFixed(1);
+        let wandDescription = '';
+        
+        // Add special descriptions for different wand types
+        switch (wand.wandType) {
+            case 'RAPIDWAND':
+                wandDescription = ' (Rapid Fire)';
+                break;
+            case 'ELDERWAND':
+                wandDescription = ' (High Power)';
+                break;
+            case 'SPELLBOT':
+                wandDescription = ' (Deployable)';
+                break;
+            default:
+                wandDescription = '';
+        }
+        
         const stats = [
-            `Damage: ${wand.damage}`,
+            `Damage: ${wand.damage}${wandDescription}`,
             `Attack Rate: ${attackRate}/s`
         ].join('\n');
         this.wandStats.setText(stats);

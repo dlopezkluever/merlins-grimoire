@@ -43,6 +43,10 @@ export abstract class Enemy extends Physics.Arcade.Sprite {
   protected pathUpdateInterval: number = 1000; // Update path every second
   public static readonly ENEMY_DIED = 'enemy-died';
   public static readonly TARGET_REACHED = 'target-reached';
+  
+  // Attack delay to prevent immediate damage on spawn
+  protected spawnTime: number = 0;
+  protected attackDelay: number = 1000; // 1 second delay before enemy can attack
 
 
   constructor(scene: Scene, x: number, y: number, id: string, enemyType: EnemyType, config?: EnemyConfig) {
@@ -95,6 +99,9 @@ export abstract class Enemy extends Physics.Arcade.Sprite {
 
     // Initialize last position
     this.lastPosition = { x, y };
+    
+    // Record spawn time
+    this.spawnTime = this.scene.time.now;
 
     if (config?.behaviour) {
       config.behaviour.init(scene, this);
@@ -185,8 +192,9 @@ export abstract class Enemy extends Physics.Arcade.Sprite {
     // Handle movement
     this.updateMovement(delta);
 
-    // Check if it's time to attack
-    if (this.isInAttackRange()) {
+    // Check if it's time to attack (with spawn delay)
+    const timeSinceSpawn = this.scene.time.now - this.spawnTime;
+    if (timeSinceSpawn > this.attackDelay && this.isInAttackRange()) {
       this.performAttack();
     }
 

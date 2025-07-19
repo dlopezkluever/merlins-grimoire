@@ -26,11 +26,14 @@ export class Barrel extends Phaser.Physics.Arcade.Sprite {
       if (this.body instanceof Phaser.Physics.Arcade.Body) {
         this.body.setSize(32, 32); // Adjust size as needed
 
-        // Set basic physics properties
+        // Set basic physics properties to prevent movement
         this.body.setBounce(0);
-
-        // Enable collision with spells
-        this.body.immovable = true;
+        this.body.setDrag(1000); // High drag to prevent sliding
+        this.body.setFriction(1); // Maximum friction
+        this.body.setMaxVelocity(0); // Prevent any movement
+        this.body.setGravity(0); // No gravity effects
+        this.body.immovable = true; // Cannot be moved by physics
+        this.body.pushable = false; // Cannot be pushed
       }
     }
     // this.setSize(32, 32);

@@ -61,10 +61,10 @@ export class Player extends Physics.Arcade.Sprite {
     this.setDepth(1); // Ensure player appears above floor
 
     const body = this.body as Physics.Arcade.Body;
-    body.setBounce(0.2);
+    body.setBounce(0);
     body.setCollideWorldBounds(true);
-    body.setDamping(true);
-    body.setDrag(0.9);
+    body.setDamping(false); // Disable automatic damping to prevent conflicts
+    body.setDrag(0); // Remove drag to prevent movement conflicts
     body.setMaxVelocity(500);
     body.setSize(32, 48); // Adjusted collision box for 64x64 sprite
     body.setOffset(16, 16); // Center the collision box
@@ -204,9 +204,22 @@ export class Player extends Physics.Arcade.Sprite {
     super.preUpdate(time, delta);
 
     const body = this.body as Physics.Arcade.Body;
-    body.setVelocity(0);
-
+    
+    // Only reset velocity if no input is detected
     const isMoving = this.handleKeyboardMovement(body) || this.handleTouchMovement(body);
+    
+    if (!isMoving) {
+      // Apply smooth deceleration
+      const currentVelocityX = body.velocity.x;
+      const currentVelocityY = body.velocity.y;
+      const threshold = 10; // Lower threshold for snappier response
+      
+      if (Math.abs(currentVelocityX) > threshold || Math.abs(currentVelocityY) > threshold) {
+        body.setVelocity(currentVelocityX * 0.85, currentVelocityY * 0.85);
+      } else {
+        body.setVelocity(0, 0);
+      }
+    }
 
     // Update animation based on movement
     if (isMoving) {
@@ -214,6 +227,8 @@ export class Player extends Physics.Arcade.Sprite {
     } else {
       this.play('merlin-idle-anim', true);
     }
+    
+    // Player health bar is now fixed position - no need to update
 
     // Handle auto-targeting
     this.handleAutoTargeting();

@@ -1,7 +1,7 @@
 import { Types, Physics, Scene } from "phaser";
 import { Room } from "./Room";
-import { Door } from "../Door";
-import { DoorDirection } from "../Door";
+// Door system removed - import { Door } from "../Door";
+// Door system removed - import { DoorDirection } from "../Door";
 import { Player } from "../player/Player";
 import { MazeData, MazeRoom } from "../maze/MazeGenerator";
 
@@ -44,14 +44,7 @@ export class RoomManager {
         }
       });
 
-      roomLayer.objects.filter(obj => obj.name === "Door").forEach(doorObj => {
-        const roomProperty = doorObj.properties?.find((p: { name: string; value: string }) => p.name === 'Room');
-        if (!roomProperty) return;
-        const room = this.rooms.get(roomProperty.value as string);
-        if (room) {
-          this.setupDoor(doorObj, room);
-        }
-      });
+      // Door system removed - free exploration mode
     } else {
       console.warn("No 'Rooms' layer found in map");
     }
@@ -186,46 +179,7 @@ export class RoomManager {
     }
   }
 
-  private setupDoor(obj: Phaser.Types.Tilemaps.TiledObject, room: Room): void {
-    const isOpen = obj.properties.find((prop: { name: string; value: any }) => prop.name === 'Open')?.value === 1;
-    const roomId = obj.properties.find((prop: { name: string; value: any }) => prop.name === 'Room')?.value || 'unknown';
-    const directionProp = obj.properties.find((prop: { name: string; value: any }) => prop.name === 'Direction');
-    let direction = DoorDirection.East;
-
-    if (directionProp) {
-      switch (directionProp.value) {
-        case 'East':
-          direction = DoorDirection.East;
-          break;
-        case 'South':
-          direction = DoorDirection.South;
-          break;
-        case 'West':
-          direction = DoorDirection.West;
-          break;
-        case 'North':
-          direction = DoorDirection.North;
-          break;
-      }
-    }
-
-    const door = new Door(
-      this.scene,
-      (obj.x || 0) + (obj.width || 0) / 2,
-      (obj.y || 0) + (obj.height || 0) / 2,
-      isOpen,
-      roomId,
-      direction
-    );
-
-    // Add collision with player if door is closed
-    if (!isOpen) {
-      const collider = this.scene.physics.add.collider(this.player, door);
-      door.setCollider(collider);
-    }
-
-    room.addDoor(door);
-  }
+  // Door system removed - setupDoor method no longer needed
 
 
   private handleRoomEntry(room: Room) {

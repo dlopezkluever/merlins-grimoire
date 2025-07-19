@@ -9,7 +9,7 @@ export class SpellBot extends Phaser.Physics.Arcade.Sprite {
     private particles: Phaser.GameObjects.Particles.ParticleEmitter | null = null;
 
     constructor(scene: Phaser.Scene, x: number, y: number) {
-        super(scene, x, y, 'spell-bot');
+        super(scene, x, y, 'spell-bot-animation');
         this.setScale(2);
         this.createAnimations();
         this.scene.add.existing(this);
@@ -40,17 +40,23 @@ export class SpellBot extends Phaser.Physics.Arcade.Sprite {
         if (this.scene.anims.exists('spell-bot-explode')) return;
         this.scene.anims.create({
             key: 'spell-bot-explode',
-            frames: this.scene.anims.generateFrameNames('spell-bot', {
+            frames: this.scene.anims.generateFrameNumbers('spell-bot-animation', {
                 start: 0,
-                end: 2,
+                end: 1,
             }),
-            frameRate: 10
+            frameRate: 8,
+            repeat: -1
         });
     }
 
     override preUpdate(time: number, delta: number) {
         super.preUpdate(time, delta);
-        this.play('spell-bot-explode', true);
+        
+        // Only start the animation if it's not already playing
+        if (!this.anims.isPlaying) {
+            this.play('spell-bot-explode');
+        }
+        
         this.actionTimer += delta;
         if (this.actionTimer >= this.actionInterval) {
             this.explode();

@@ -139,34 +139,72 @@ export class EnemySpawner {
     }
 
     private async getRandomPoint(): Promise<{ x: number, y: number }[] | null> {
-        const numberOfPoints = 20;
+        const numberOfPoints = 15;
         const pathfindingGrid = (this.scene as MainScene).getPathfindingGrid();
+        const roomBounds = this.room.getZone().getBounds();
 
         const spawnPoints: { x: number, y: number }[] = [];
-        for (let i = 0; i < numberOfPoints; i++) {
-            const angle = (Math.PI * 2 * i) / numberOfPoints;
-            const radius = Phaser.Math.Between(200, 600);
-            const x = Math.round(this.player.x + radius * Math.cos(angle));
-            const y = Math.round(this.player.y + radius * Math.sin(angle));
+        
+        // Try to find spawn points throughout the room, not just around the player
+        const maxAttempts = Math.min(numberOfPoints * 2, 100); // Cap attempts to prevent infinite loops
+        for (let i = 0; i < maxAttempts; i++) {
+            let x: number, y: number;
+            
+            // 60% chance to spawn away from player, 40% chance near player
+            if (Math.random() < 0.6) {
+                // Spawn anywhere in the room, avoiding player vicinity
+                x = Phaser.Math.Between(roomBounds.x + 32, roomBounds.x + roomBounds.width - 32);
+                y = Phaser.Math.Between(roomBounds.y + 32, roomBounds.y + roomBounds.height - 32);
+                
+                // Ensure minimum distance from player (avoid spawning too close)
+                const distanceFromPlayer = Phaser.Math.Distance.Between(x, y, this.player.x, this.player.y);
+                if (distanceFromPlayer < 200) {
+                    continue; // Skip this point if too close to player
+                }
+            } else {
+                // Spawn in a random radius around player (for some challenge)
+                const angle = Math.random() * Math.PI * 2;
+                const radius = Phaser.Math.Between(200, 400);
+                x = Math.round(this.player.x + radius * Math.cos(angle));
+                y = Math.round(this.player.y + radius * Math.sin(angle));
+            }
+            
             if (!this.room.inRoom(x, y)) {
                 continue;
             }
+            
             const gridX = pathfindingGrid.getGridX(x);
             const gridY = pathfindingGrid.getGridY(y);
 
             if (pathfindingGrid.isTileWalkable(gridX, gridY) &&
-                this.room.getZone().getBounds().contains(x, y)) {
+                roomBounds.contains(x, y)) {
                 spawnPoints.push({ x, y });
             }
+            
+            // Stop once we have enough points
+            if (spawnPoints.length >= numberOfPoints) {
+                break;
+            }
         }
+        
         if (spawnPoints.length > 0) {
             return spawnPoints;
         }
+        
         const workingSpawnPoint = this.room.getWorkingSpawnPoint();
         if (workingSpawnPoint) {
             return [workingSpawnPoint];
         }
-        return [{ x: this.room.getZone().getBounds().centerX, y: this.room.getZone().getBounds().centerY }];
+        
+        // Fallback: spawn in room corners rather than center
+        const cornerPoints = [
+            { x: roomBounds.x + 50, y: roomBounds.y + 50 },
+            { x: roomBounds.x + roomBounds.width - 50, y: roomBounds.y + 50 },
+            { x: roomBounds.x + 50, y: roomBounds.y + roomBounds.height - 50 },
+            { x: roomBounds.x + roomBounds.width - 50, y: roomBounds.y + roomBounds.height - 50 }
+        ];
+        
+        return [cornerPoints[Math.floor(Math.random() * cornerPoints.length)]];
     }
 
     public destroy() {

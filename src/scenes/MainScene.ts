@@ -11,6 +11,7 @@ import { WandManager } from '../objects/wands/WandManager';
 import { ItemManager } from '../objects/items/ItemManager';
 import { MazeGenerator, MazeData } from '../objects/maze/MazeGenerator';
 import { Treasure } from '../objects/items/Treasure';
+// MiniMap removed - no longer needed
 
 export class MainScene extends Scene {
   // Core game objects
@@ -33,6 +34,7 @@ export class MainScene extends Scene {
   protected itemManager: ItemManager | null = null;
   protected wandManager: WandManager | null = null;
   protected movementManager: MovementManager | null = null;
+  // MiniMap removed - no longer needed
   private mazeData!: MazeData;
   private treasure: Treasure | null = null;
 
@@ -47,9 +49,6 @@ export class MainScene extends Scene {
   }
 
   private loadGameAssets() {
-    // Load sprites
-    // Merlin-idle: 128x64 (2 frames of 64x64 each)
-    // Merlin-run: 192x64 (3 frames of 64x64 each)
     this.loadSprite('merlin-idle', 'sprites/merlin-idle.png', 64, 64); // 2 frames
     this.loadSprite('merlin-run', 'sprites/merlin-run.png', 64, 64); // 3 frames
     this.loadSprite('draugr-sprite', 'sprites/draugr.png', 16, 32);
@@ -75,8 +74,7 @@ export class MainScene extends Scene {
 
     // Load props
     this.load.image('particle', 'sprites/particle.png');
-    this.load.image('door-open', 'sprites/door-open.png');
-    this.load.image('door-closed', 'sprites/door-closed.png');
+    // Door system removed - free exploration mode
     this.load.image('barrel', 'sprites/barrel.png');
     this.load.image('health-potion', 'sprites/health-potion.png');
     this.load.image('spark-boost', 'sprites/spark-boost.png');
@@ -108,11 +106,22 @@ export class MainScene extends Scene {
     this.setupEnemies();      // Moved here to initialize before player update
     this.setupWandManager();
     this.setupCamera();
+    
+    // Force health bar repositioning after camera zoom is applied
+    if (this.player) {
+      const healthBar = (this.player as any).healthBar;
+      if (healthBar && healthBar.forceReposition) {
+        healthBar.forceReposition();
+      }
+    }
+    
     this.setupPhysics();
     this.setupPathfinding();
     this.setupBarrels();
     this.setupPotions();
     this.setupCollisions();
+    // MiniMap removed - no longer needed
+    
     // Enable debug visualization
     // this.physics.world.createDebugGraphic();
 
@@ -391,6 +400,8 @@ export class MainScene extends Scene {
   }
 
 
+  // MiniMap removed - no longer needed
+
   update(time: number, delta: number) {
     if (this.gameOver) {
       return;
@@ -398,6 +409,7 @@ export class MainScene extends Scene {
     if (this.movementManager) {
       this.movementManager.updateFlankingPoints(this.getEnemyManager().getEnemies());
     }
+    // MiniMap removed - no longer needed
   }
 
 
@@ -665,7 +677,9 @@ export class MainScene extends Scene {
     }
     if (this.treasure) {
       this.treasure.destroy();
+      this.treasure = null;
     }
+    // MiniMap removed - no longer needed
 
     // Clean up UI elements
     if (this.gameOverText) {
@@ -696,5 +710,6 @@ export class MainScene extends Scene {
     this.wandManager = null;
     this.movementManager = null;
     this.treasure = null;
+    // MiniMap removed - no longer needed
   }
 }

@@ -1,4 +1,10 @@
-import { DoorDirection } from '../Door';
+// Direction enum for maze connections (replaces DoorDirection)
+export enum Direction {
+  NORTH = 'NORTH',
+  SOUTH = 'SOUTH',
+  EAST = 'EAST',
+  WEST = 'WEST'
+}
 
 export interface MazeRoom {
   id: string;
@@ -6,19 +12,19 @@ export interface MazeRoom {
   y: number;
   width: number;
   height: number;
-  connections: { direction: DoorDirection; targetRoomId: string }[];
+  connections: { direction: Direction; targetRoomId: string }[];
   isDeadEnd: boolean;
   gridX: number;
   gridY: number;
   roomType: 'start' | 'normal' | 'end' | 'hallway' | 'junction';
-  corridors: { x: number; y: number; direction: DoorDirection }[];
+  corridors: { x: number; y: number; direction: Direction }[];
 }
 
 export interface MazeData {
   rooms: MazeRoom[];
   wallTiles: { x: number; y: number }[];
   floorTiles: { x: number; y: number }[];
-  doors: { x: number; y: number; direction: DoorDirection; roomId: string; targetRoomId: string }[];
+  doors: { x: number; y: number; direction: Direction; roomId: string; targetRoomId: string }[];
   mapWidth: number;
   mapHeight: number;
   endRoomId: string;
@@ -487,7 +493,7 @@ export class MazeGenerator {
     return Math.sqrt(dx * dx + dy * dy);
   }
 
-  private getDirection(from: MazeRoom, to: MazeRoom): DoorDirection {
+  private getDirection(from: MazeRoom, to: MazeRoom): Direction {
     const fromCenter = {
       x: from.x + from.width / 2,
       y: from.y + from.height / 2
@@ -501,18 +507,18 @@ export class MazeGenerator {
     const dy = toCenter.y - fromCenter.y;
     
     if (Math.abs(dx) > Math.abs(dy)) {
-      return dx > 0 ? DoorDirection.EAST : DoorDirection.WEST;
+      return dx > 0 ? Direction.EAST : Direction.WEST;
     } else {
-      return dy > 0 ? DoorDirection.SOUTH : DoorDirection.NORTH;
+      return dy > 0 ? Direction.SOUTH : Direction.NORTH;
     }
   }
 
-  private oppositeDirection(direction: DoorDirection): DoorDirection {
+  private oppositeDirection(direction: Direction): Direction {
     switch (direction) {
-      case DoorDirection.NORTH: return DoorDirection.SOUTH;
-      case DoorDirection.SOUTH: return DoorDirection.NORTH;
-      case DoorDirection.EAST: return DoorDirection.WEST;
-      case DoorDirection.WEST: return DoorDirection.EAST;
+      case Direction.NORTH: return Direction.SOUTH;
+      case Direction.SOUTH: return Direction.NORTH;
+      case Direction.EAST: return Direction.WEST;
+      case Direction.WEST: return Direction.EAST;
     }
   }
 } 
