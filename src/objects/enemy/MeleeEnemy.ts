@@ -11,10 +11,10 @@ export class MeleeEnemy extends Enemy {
   }
 
   protected performAttack(): void {
-    // Apply damage to player if weapon exists
-    if (this.weapon) {
+    // Apply damage to player if wand exists
+    if (this.wand) {
       if (this.player) {
-        this.weapon.dealDamage(this, this.player);
+        this.wand.dealDamage(this, this.player);
       }
     }
   }

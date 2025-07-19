@@ -9,7 +9,7 @@ export class SpellBot extends Phaser.Physics.Arcade.Sprite {
     private particles: Phaser.GameObjects.Particles.ParticleEmitter | null = null;
 
     constructor(scene: Phaser.Scene, x: number, y: number) {
-        super(scene, x, y, 'canon');
+        super(scene, x, y, 'spell-bot');
         this.setScale(2);
         this.createAnimations();
         this.scene.add.existing(this);
@@ -28,19 +28,19 @@ export class SpellBot extends Phaser.Physics.Arcade.Sprite {
 
     private setupOverlap() {
         const player = (this.scene as MainScene).getPlayer();
-        this.scene.physics.add.overlap(this, player, (obj1, obj2) => this.handleOverlap(obj1 as Canon, obj2 as Player), undefined, this);
-        this.scene.physics.add.overlap(this, player.getWeapon().bullets as Phaser.Physics.Arcade.Group, (obj1, obj2) => this.handleOverlap(obj1 as Canon, obj2 as Bullet), undefined, this);
+        this.scene.physics.add.overlap(this, player, (obj1, obj2) => this.handleOverlap(obj1 as SpellBot, obj2 as Player), undefined, this);
+        this.scene.physics.add.overlap(this, player.getWand().spells as Phaser.Physics.Arcade.Group, (obj1, obj2) => this.handleOverlap(obj1 as SpellBot, obj2 as PlainSpell), undefined, this);
     }
 
-    private handleOverlap(canon: Canon, other: Player | Bullet) {
+    private handleOverlap(spellBot: SpellBot, other: Player | PlainSpell) {
         this.explode();
     }
 
     private createAnimations() {
-        if (this.scene.anims.exists('canon-explode')) return;
+        if (this.scene.anims.exists('spell-bot-explode')) return;
         this.scene.anims.create({
-            key: 'canon-explode',
-            frames: this.scene.anims.generateFrameNames('canon', {
+            key: 'spell-bot-explode',
+            frames: this.scene.anims.generateFrameNames('spell-bot', {
                 start: 0,
                 end: 2,
             }),
@@ -50,7 +50,7 @@ export class SpellBot extends Phaser.Physics.Arcade.Sprite {
 
     override preUpdate(time: number, delta: number) {
         super.preUpdate(time, delta);
-        this.play('canon-explode', true);
+        this.play('spell-bot-explode', true);
         this.actionTimer += delta;
         if (this.actionTimer >= this.actionInterval) {
             this.explode();

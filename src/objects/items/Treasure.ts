@@ -103,27 +103,27 @@ export class Treasure extends Physics.Arcade.Sprite {
     overlay.setDepth(1000);
     overlay.setScrollFactor(0); // Fixed to camera
 
-    // Create ornate border frame for the victory message
-    const frameWidth = 700;
-    const frameHeight = 400;
+    // Create ornate border frame for the victory message (50% smaller)
+    const frameWidth = 350;
+    const frameHeight = 200;
     const frame = this.scene.add.rectangle(centerX, centerY, frameWidth, frameHeight, 0x3E2723);
-    frame.setStrokeStyle(8, 0xFFB300); // Golden border
+    frame.setStrokeStyle(4, 0xFFB300); // Golden border (proportionally smaller)
     frame.setOrigin(0.5);
     frame.setDepth(1001);
     frame.setScrollFactor(0);
 
-    // Create victory text
-    const victoryText = this.scene.add.text(centerX, centerY - 80, 'TREASURE DISCOVERED!', {
-      fontSize: '56px',
+    // Create victory text (smaller)
+    const victoryText = this.scene.add.text(centerX, centerY - 40, 'TREASURE DISCOVERED!', {
+      fontSize: '28px',
       color: '#FFB300', // Gold color
       fontFamily: 'Alagard',
       stroke: '#2A1A4A',
-      strokeThickness: 4,
+      strokeThickness: 2,
       shadow: {
-        offsetX: 2,
-        offsetY: 2,
+        offsetX: 1,
+        offsetY: 1,
         color: '#2A1A4A',
-        blur: 2,
+        blur: 1,
         stroke: true,
         fill: true
       }
@@ -132,9 +132,9 @@ export class Treasure extends Physics.Arcade.Sprite {
     victoryText.setDepth(1002);
     victoryText.setScrollFactor(0); // Fixed to camera
 
-    // Create subtitle text
-    const subtitleText = this.scene.add.text(centerX, centerY - 10, 'Thy magical quest is complete!', {
-      fontSize: '28px',
+    // Create subtitle text (smaller)
+    const subtitleText = this.scene.add.text(centerX, centerY - 5, 'Thy magical quest is complete!', {
+      fontSize: '14px',
       color: '#E0E0E0',
       fontFamily: 'Alagard'
     });
@@ -142,16 +142,16 @@ export class Treasure extends Physics.Arcade.Sprite {
     subtitleText.setDepth(1002);
     subtitleText.setScrollFactor(0); // Fixed to camera
 
-    // Create play again button with medieval styling
-    const buttonBg = this.scene.add.rectangle(centerX, centerY + 60, 280, 70, 0x5D4037);
-    buttonBg.setStrokeStyle(3, 0xFFB300);
+    // Create play again button with medieval styling (smaller)
+    const buttonBg = this.scene.add.rectangle(centerX, centerY + 30, 160, 40, 0x5D4037);
+    buttonBg.setStrokeStyle(2, 0xFFB300);
     buttonBg.setOrigin(0.5);
     buttonBg.setDepth(1002);
     buttonBg.setScrollFactor(0);
     buttonBg.setInteractive({ useHandCursor: true });
 
-    const buttonText = this.scene.add.text(centerX, centerY + 60, 'BEGIN NEW QUEST', {
-      fontSize: '24px',
+    const buttonText = this.scene.add.text(centerX, centerY + 30, 'BEGIN NEW QUEST', {
+      fontSize: '16px',
       color: '#FFC107',
       fontFamily: 'Alagard'
     });

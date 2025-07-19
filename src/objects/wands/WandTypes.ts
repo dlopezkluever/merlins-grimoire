@@ -2,21 +2,22 @@ import { Player } from '../player/Player';
 import { Enemy } from '../enemy/Enemy';
 import { RangedEnemy } from '../enemy/RangedEnemy';
 
-// Base interface for all weapons
-export interface Weapon {
-    damage: number;
-    range: number;
-    attackSpeed: number;
+// Interface for base wand properties
+export interface WandBase {
+  damage: number;
+  attackRate: number; // Time between attacks in milliseconds
+  minDistance: number;
+  maxDistance: number;
 }
 
-// Interface for melee weapons
-export interface MeleeWeapon extends Weapon {
-    attack(attacker: Player, target: Enemy): void;
+// Interface for melee wands
+export interface MeleeWand extends WandBase {
+  knockback?: number;
 }
 
-// Interface for ranged weapons
-export interface RangedWeapon extends Weapon {
-    bulletSpeed: number;
-    bulletSprite: string;
-    fire(shooter: RangedEnemy, target: Player): void;
+// Interface for ranged wands
+export interface RangedWand extends WandBase {
+  spellSpeed: number;
+  spellSprite: string;
+  fire(shooter: RangedEnemy, target: Player): void;
 } 

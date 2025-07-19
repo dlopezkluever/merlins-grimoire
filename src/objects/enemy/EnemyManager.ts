@@ -68,10 +68,10 @@ export class EnemyManager {
   public setupProceduralEnemies(rooms: Map<string, Room>): void {
     // Define enemy types and their spawn probabilities
     const enemyTypes = [
-      { type: 'SKELETON' as EnemyType, weight: 30, minCount: 1, maxCount: 3 },
-      { type: 'ZOMBIE' as EnemyType, weight: 25, minCount: 1, maxCount: 2 },
-      { type: 'NINJA' as EnemyType, weight: 20, minCount: 1, maxCount: 2 },
-      { type: 'CHOMPER' as EnemyType, weight: 15, minCount: 1, maxCount: 2 },
+      { type: 'DRAUGR' as EnemyType, weight: 30, minCount: 1, maxCount: 3 },
+      { type: 'DUMBDUMB' as EnemyType, weight: 25, minCount: 1, maxCount: 2 },
+      { type: 'SCOUNDREL' as EnemyType, weight: 20, minCount: 1, maxCount: 2 },
+      { type: 'DRAGONLING' as EnemyType, weight: 15, minCount: 1, maxCount: 2 },
       { type: 'TROLL' as EnemyType, weight: 10, minCount: 1, maxCount: 1 }
     ];
 
@@ -179,31 +179,31 @@ export class EnemyManager {
     }
   }
 
-  // Helper to set up collisions for a specific enemy's bullets
+  // Helper to set up collisions for a specific enemy's spells
   public setupEnemySpellCollisions(enemyInstance: Enemy) {
     const wallsLayer = (this.scene as MainScene).getWallsLayer();
 
     if (enemyInstance instanceof RangedEnemy && enemyInstance.wand && enemyInstance.wand.spells) {
-      // Enemy Bullets vs Player
+      // Enemy Spells vs Player
       this.scene.physics.add.collider(this.player, enemyInstance.wand.spells, this.handlePlayerSpellCollision, undefined, this);
-      // Enemy Bullets vs Walls
+      // Enemy Spells vs Walls
       if (wallsLayer) {
         this.scene.physics.add.collider(enemyInstance.wand.spells, wallsLayer, (this.scene as MainScene).handleSpellCollision, undefined, this);
       }
     }
   }
 
-  // Handles collision between enemy bullets and the player
-  private handlePlayerSpellCollision(player: any, bullet: any) {
+  // Handles collision between enemy spells and the player
+  private handlePlayerSpellCollision(player: any, spell: any) {
     const playerInstance = player as Player;
-    const bulletInstance = bullet as PlainSpell;
+    const spellInstance = spell as PlainSpell;
 
-    if (!playerInstance.active || !bulletInstance.active) {
+    if (!playerInstance.active || !spellInstance.active) {
       return;
     }
 
-    playerInstance.takeDamage(bulletInstance.getDamage());
-    bulletInstance.deactivate();
+    playerInstance.takeDamage(spellInstance.getDamage());
+    spellInstance.deactivate();
   }
 
   private handleEnemyWallCollision(enemy: any, wall: any): void {
@@ -213,16 +213,16 @@ export class EnemyManager {
     }
   }
 
-  private handleEnemySpellCollision(enemy: any, bullet: any): void {
+  private handleEnemySpellCollision(enemy: any, spell: any): void {
     const enemyInstance = enemy as Enemy;
-    const bulletInstance = bullet as PlainSpell;
+    const spellInstance = spell as PlainSpell;
 
-    if (!enemyInstance.active || !bulletInstance.active) {
+    if (!enemyInstance.active || !spellInstance.active) {
       return;
     }
 
-    bulletInstance.deactivate();
-    enemyInstance.takeDamage(bulletInstance.getDamage());
+    spellInstance.deactivate();
+    enemyInstance.takeDamage(spellInstance.getDamage());
   }
 
   private handlePlayerEnemyOverlap(player: any, enemy: any): void {

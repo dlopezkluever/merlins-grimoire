@@ -422,34 +422,34 @@ export class MainScene extends Scene {
     overlay.setOrigin(0.5);
     overlay.setDepth(100); // Ensure it's above other elements
 
-    // Create ornate border frame for the game over message
-    const frameWidth = 600;
-    const frameHeight = 300;
+    // Create ornate border frame for the game over message (50% smaller)
+    const frameWidth = 300;
+    const frameHeight = 150;
     const frame = this.add.rectangle(cameraCenterX, cameraCenterY, frameWidth, frameHeight, 0x3E2723);
-    frame.setStrokeStyle(8, 0xFFB300); // Golden border
+    frame.setStrokeStyle(4, 0xFFB300); // Golden border (proportionally smaller)
     frame.setOrigin(0.5);
     frame.setDepth(101);
 
-    // Show game over text at the center of the screen
-    this.gameOverText = this.add.text(cameraCenterX, cameraCenterY - 50, 'THY QUEST HATH ENDED', {
-      fontSize: '48px',
+    // Show game over text at the center of the screen (smaller)
+    this.gameOverText = this.add.text(cameraCenterX, cameraCenterY - 25, 'THY QUEST HATH ENDED', {
+      fontSize: '24px',
       color: '#FFB300',
       fontFamily: 'Alagard',
       stroke: '#2A1A4A',
-      strokeThickness: 3,
+      strokeThickness: 2,
       shadow: {
-        offsetX: 2,
-        offsetY: 2,
+        offsetX: 1,
+        offsetY: 1,
         color: '#2A1A4A',
-        blur: 2,
+        blur: 1,
         stroke: true,
         fill: true
       }
     }).setOrigin(0.5).setDepth(102);
 
-    // Create restart button with medieval styling
-    const buttonBg = this.add.rectangle(cameraCenterX, cameraCenterY + 50, 250, 60, 0x5D4037);
-    buttonBg.setStrokeStyle(3, 0xFFB300);
+    // Create restart button with medieval styling (15% longer for text)
+    const buttonBg = this.add.rectangle(cameraCenterX, cameraCenterY + 25, 180, 40, 0x5D4037);
+    buttonBg.setStrokeStyle(2, 0xFFB300);
     buttonBg.setOrigin(0.5);
     buttonBg.setDepth(102);
     buttonBg.setInteractive({ useHandCursor: true });
@@ -465,9 +465,9 @@ export class MainScene extends Scene {
       buttonBg.setScale(1);
     });
 
-    // Create restart button text
-    this.restartText = this.add.text(cameraCenterX, cameraCenterY + 50, 'RESTART THY JOURNEY', {
-      fontSize: '24px',
+    // Create restart button text (15% smaller)
+    this.restartText = this.add.text(cameraCenterX, cameraCenterY + 25, 'RESTART THY JOURNEY', {
+      fontSize: '16px',
       color: '#FFC107',
       fontFamily: 'Alagard'
     }).setOrigin(0.5).setDepth(103);
@@ -503,34 +503,34 @@ export class MainScene extends Scene {
     overlay.setOrigin(0.5);
     overlay.setDepth(100); // Ensure it's above other elements
 
-    // Create ornate border frame for the game over message
-    const frameWidth = 600;
-    const frameHeight = 300;
+    // Create ornate border frame for the victory message (50% smaller)
+    const frameWidth = 300;
+    const frameHeight = 150;
     const frame = this.add.rectangle(cameraCenterX, cameraCenterY, frameWidth, frameHeight, 0x3E2723);
-    frame.setStrokeStyle(8, 0xFFB300); // Golden border
+    frame.setStrokeStyle(4, 0xFFB300); // Golden border (proportionally smaller)
     frame.setOrigin(0.5);
     frame.setDepth(101);
 
-    // Show game over text at the center of the screen
-    this.gameOverText = this.add.text(cameraCenterX, cameraCenterY - 50, 'VICTORIOUS WIZARD!', {
-      fontSize: '48px',
+    // Show victory text at the center of the screen (smaller)
+    this.gameOverText = this.add.text(cameraCenterX, cameraCenterY - 25, 'VICTORIOUS WIZARD!', {
+      fontSize: '24px',
       color: '#FFB300',
       fontFamily: 'Alagard',
       stroke: '#2A1A4A',
-      strokeThickness: 3,
+      strokeThickness: 2,
       shadow: {
-        offsetX: 2,
-        offsetY: 2,
+        offsetX: 1,
+        offsetY: 1,
         color: '#2A1A4A',
-        blur: 2,
+        blur: 1,
         stroke: true,
         fill: true
       }
     }).setOrigin(0.5).setDepth(102);
 
     // Create restart button with medieval styling
-    const buttonBg = this.add.rectangle(cameraCenterX, cameraCenterY + 50, 250, 60, 0x5D4037);
-    buttonBg.setStrokeStyle(3, 0xFFB300);
+    const buttonBg = this.add.rectangle(cameraCenterX, cameraCenterY + 25, 120, 40, 0x5D4037);
+    buttonBg.setStrokeStyle(2, 0xFFB300);
     buttonBg.setOrigin(0.5);
     buttonBg.setDepth(102);
     buttonBg.setInteractive({ useHandCursor: true });
@@ -547,8 +547,8 @@ export class MainScene extends Scene {
     });
 
     // Create restart button text
-    this.restartText = this.add.text(cameraCenterX, cameraCenterY + 50, 'PLAY AGAIN', {
-      fontSize: '24px',
+    this.restartText = this.add.text(cameraCenterX, cameraCenterY + 25, 'PLAY AGAIN', {
+      fontSize: '16px',
       color: '#FFC107',
       fontFamily: 'Alagard'
     }).setOrigin(0.5).setDepth(103);

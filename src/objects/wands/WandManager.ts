@@ -95,7 +95,7 @@ export class WandManager {
     if (!this.player || !wallsLayer) { return; }
 
     // Remove any existing collisions first
-    const currentWand = this.player.getWeapon();
+    const currentWand = this.player.getWand();
 
     // Setup new collisions
     if (currentWand?.spells) {
@@ -120,19 +120,19 @@ export class WandManager {
     if (wandUpgrade.wand.isDeployable()) {
       newWand = wandUpgrade.swapWand(this.player.getDeployableWand() as Wand);
     } else {
-      newWand = wandUpgrade.swapWand(this.player.getWeapon());
+      newWand = wandUpgrade.swapWand(this.player.getWand());
     }
 
     if (newWand) {
       // Update the player's wand
-      this.player.swapWeapon(newWand);
+      this.player.swapWand(newWand);
 
       // Create upgrade effect
       this.createPlayerUpgradeEffect();
 
       // Emit wand swapped event
       this.scene.events.emit(WandManager.SWAPPED_EVENT, {
-        oldWand: this.player.getWeapon(),
+        oldWand: this.player.getWand(),
         newWand: newWand
       });
 

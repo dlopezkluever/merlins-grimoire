@@ -125,7 +125,7 @@ export class BarrelManager {
   }
 
   public setupPlayerSpellCollisions(): void {
-    const currentWand = this.player.getWeapon();
+    const currentWand = this.player.getWand();
     const deployableWand = this.player.getDeployableWand();
 
     if (currentWand?.spells) {
@@ -162,8 +162,8 @@ export class BarrelManager {
     );
   }
 
-  private handleSpellBarrelCollision(barrel: any, bullet: any): void {
-    if (barrel instanceof Barrel && bullet instanceof Phaser.Physics.Arcade.Sprite) {
+  private handleSpellBarrelCollision(barrel: any, spell: any): void {
+    if (barrel instanceof Barrel && spell instanceof Phaser.Physics.Arcade.Sprite) {
       if (!barrel.isBarrelSmashed()) {
         barrel.smash();
       }

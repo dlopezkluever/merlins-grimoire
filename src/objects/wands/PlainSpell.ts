@@ -39,7 +39,7 @@ export class PlainSpell extends Physics.Arcade.Sprite {
         // Make sure the body's internal position is also synced
         (this.body as Physics.Arcade.Body).reset(x, y);
 
-        // 4. Ensure physics properties are correct for an active bullet
+        // 4. Ensure physics properties are correct for an active spell
         const body = this.body as Physics.Arcade.Body;
 
 
@@ -52,7 +52,7 @@ export class PlainSpell extends Physics.Arcade.Sprite {
         this.setRotation(angle);
     }
 
-    // Method to deactivate the bullet (return to pool)
+    // Method to deactivate the spell (return to pool)
     public deactivate(): void {
         // 1. Deactivate GameObject
         this.setActive(false);

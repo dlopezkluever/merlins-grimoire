@@ -26,7 +26,7 @@ export class RangedEnemy extends Enemy {
   }
 
   override die(): void {
-    // Deactivate all bullets in the weapon
+    // Deactivate all spells in the wand
     if (this.wand) {
       this.wand.deactivateAllSpells();
     }

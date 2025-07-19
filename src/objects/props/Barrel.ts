@@ -29,7 +29,7 @@ export class Barrel extends Phaser.Physics.Arcade.Sprite {
         // Set basic physics properties
         this.body.setBounce(0);
 
-        // Enable collision with bullets
+        // Enable collision with spells
         this.body.immovable = true;
       }
     }

@@ -14,7 +14,7 @@ export interface EnemyBehaviour {
 export class DropSpellBotBehaviour implements EnemyBehaviour {
     private actionTimer: number = 0;
     private actionInterval: number = 4000;
-    private canons: Phaser.Physics.Arcade.Group | null = null;
+    private spellBots: Phaser.Physics.Arcade.Group | null = null;
     private isDestroying: boolean = false;
     private direction: { x: number, y: number }[] =
         [{ x: 150, y: 150 },
@@ -34,7 +34,7 @@ export class DropSpellBotBehaviour implements EnemyBehaviour {
 
     public init(scene: Scene, enemy: Enemy) {
         // Initialize the group with the scene
-        this.canons = scene.physics.add.group({
+        this.spellBots = scene.physics.add.group({
                             classType: SpellBot,
             runChildUpdate: true,
             maxSize: 10
@@ -47,23 +47,23 @@ export class DropSpellBotBehaviour implements EnemyBehaviour {
     }
 
     public preUpdate(time: number, delta: number, scene: Scene, enemy: Enemy) {
-        // Don't create new canons if we're in the process of destroying
+        // Don't create new spell bots if we're in the process of destroying
         if (this.isDestroying) return;
 
         this.actionTimer += delta;
         if (this.actionTimer >= this.actionInterval) {
-            if (scene && enemy && enemy.active && this.canons) {
-                // Try to get a canon from the pool
-                const canon = this.canons.getFirstDead() as SpellBot;
+            if (scene && enemy && enemy.active && this.spellBots) {
+                // Try to get a spell bot from the pool
+                const spellBot = this.spellBots.getFirstDead() as SpellBot;
                 const position = this.getValidPosition(enemy.x, enemy.y, scene);
 
-                if (canon) {
-                    // Reactivate existing canon
-                    canon.activate(position.x, position.y);
+                if (spellBot) {
+                    // Reactivate existing spell bot
+                    spellBot.activate(position.x, position.y);
                 } else {
-                    // Create new canon if pool is empty
-                                            const newCanon = new SpellBot(scene, position.x, position.y);
-                    this.canons.add(newCanon);
+                    // Create new spell bot if pool is empty
+                    const newSpellBot = new SpellBot(scene, position.x, position.y);
+                    this.spellBots.add(newSpellBot);
                 }
             }
             this.actionTimer = 0;
@@ -81,12 +81,12 @@ export class DropSpellBotBehaviour implements EnemyBehaviour {
         }
         return { x: x, y: y };
     }
-    private areAllCanonsInactive(): boolean {
-        if (!this.canons) return true;
+    private areAllSpellBotsInactive(): boolean {
+        if (!this.spellBots) return true;
 
         let allInactive = true;
-        this.canons.getChildren().forEach((canon: Phaser.GameObjects.GameObject) => {
-            if (canon.active) {
+        this.spellBots.getChildren().forEach((spellBot: Phaser.GameObjects.GameObject) => {
+            if (spellBot.active) {
                 allInactive = false;
             }
         });
@@ -97,13 +97,13 @@ export class DropSpellBotBehaviour implements EnemyBehaviour {
         if (this.isDestroying) return;
         this.isDestroying = true;
 
-        // If there are active canons, wait for them to explode
-        if (!this.areAllCanonsInactive()) {
-            // Check every 100ms if all canons are inactive
+        // If there are active spell bots, wait for them to explode
+        if (!this.areAllSpellBotsInactive()) {
+            // Check every 100ms if all spell bots are inactive
             const checkInterval = scene?.time.addEvent({
                 delay: 100,
                 callback: () => {
-                    if (this.areAllCanonsInactive()) {
+                    if (this.areAllSpellBotsInactive()) {
                         checkInterval?.destroy();
                         this.finalizeDestroy();
                     }
@@ -116,11 +116,11 @@ export class DropSpellBotBehaviour implements EnemyBehaviour {
     }
 
     private finalizeDestroy(): void {
-        console.log('Finalizing destroy', this.canons);
-        if (this.canons) {
-            this.canons.clear(true, true);
-            this.canons.destroy();
-            this.canons = null;
+        console.log('Finalizing destroy', this.spellBots);
+        if (this.spellBots) {
+            this.spellBots.clear(true, true);
+            this.spellBots.destroy();
+            this.spellBots = null;
         }
     }
 }

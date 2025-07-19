@@ -46,7 +46,7 @@ export class Player extends Physics.Arcade.Sprite {
 
     this.setupPhysics(scene);
     this.setupInput(scene);
-    this.setupWeapons(scene);
+    this.setupWands(scene);
     this.setupUI(scene);
     this.setupEventListeners(scene);
     this.setupAnimations(scene);
@@ -96,7 +96,7 @@ export class Player extends Physics.Arcade.Sprite {
     });
   }
 
-  private setupWeapons(scene: Scene): void {
+  private setupWands(scene: Scene): void {
     // Initialize weapon with LEVEL_1_GUN configuration
     this.wand = WandFactory.createPlayerWand(scene, 'RAPIDWAND');
   }
@@ -219,11 +219,11 @@ export class Player extends Physics.Arcade.Sprite {
     this.handleAutoTargeting();
   }
 
-  public getWeapon(): Wand {
+  public getWand(): Wand {
     return this.wand;
   }
 
-  public getDeployableWand(): Wand | null {
+  public getDeployableWand(): DeployableWand | null {
     return this.deployableWand;
   }
 
@@ -417,11 +417,11 @@ export class Player extends Physics.Arcade.Sprite {
     }
   }
 
-  public swapWeapon(newWeapon: Wand): void {
-    if (newWeapon.isDeployable()) {
-      this.deployableWand = newWeapon as DeployableWand;
+  public swapWand(newWand: Wand): void {
+    if (newWand.isDeployable()) {
+      this.deployableWand = newWand as DeployableWand;
     } else {
-      this.wand = newWeapon;
+      this.wand = newWand;
     }
     this.wandOverlay.updateWand(this.wand);
   }
