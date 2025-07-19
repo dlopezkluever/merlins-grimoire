@@ -1,0 +1,254 @@
+import { Scene } from 'phaser';
+import { Enemy } from './Enemy';
+import { Room } from '../rooms/Room';
+import { Player } from '../player/Player';
+import { RangedEnemy } from './RangedEnemy';
+import { PlainSpell } from '../wands/PlainSpell';
+import { EnemyType } from './EnemyFactory';
+import { MainScene } from '../../scenes/MainScene';
+import { WandUpgrade } from '../wands/WandUpgrade';
+import { WandManager } from '../wands/WandManager';
+import { EnemySpawner } from './EnemySpawner';
+
+export class EnemyManager {
+  private scene: Scene;
+  private enemies: Phaser.Physics.Arcade.Group;
+  private player: Player;
+
+  constructor(scene: Scene, player: Player) {
+    this.scene = scene;
+    this.player = player;
+    this.enemies = this.scene.physics.add.group({
+      classType: Enemy,
+      runChildUpdate: true
+    });
+
+    // Listen for enemy created events
+    this.scene.events.on(EnemySpawner.ENEMY_CREATED, (data: { enemy: Enemy }) => {
+      if (data.enemy && data.enemy.body) {
+        this.enemies.add(data.enemy);
+        this.setupEnemySpellCollisions(data.enemy);
+      }
+    });
+
+    scene.events.on(WandManager.SWAPPED_EVENT, (data: { wandUpgrade: WandUpgrade }) => {
+      this.setupPlayerSpellCollisions();
+    });
+  }
+
+  public createEnemiesFromSpawnLayer(spawnLayer: Phaser.Tilemaps.ObjectLayer, rooms: Map<string, Room>): void {
+    // Find all enemy spawn points in the spawn layer
+    spawnLayer.objects.forEach((obj) => {
+
+      // Ensure all required properties exist
+      if (typeof obj.x !== 'number' ||
+        typeof obj.y !== 'number') {
+        console.warn('Invalid enemy spawn object properties:', obj);
+        return;
+      }
+
+      const roomProperty = obj.properties?.find((p: { name: string; value: string }) => p.name === 'Room');
+      const roomId = roomProperty?.value;
+      const room = rooms.get(roomId);
+
+      if (room) {
+        // Get enemy type from properties
+        const typeProperty = obj.properties?.find((p: { name: string; value: string }) => p.name === 'Type');
+        const enemyType = typeProperty?.value?.toUpperCase() as EnemyType;
+        const quantityProperty = obj.properties?.find((p: { name: string; value: string }) => p.name === 'Quantity');
+        const maxSpawnsProperty = obj.properties?.find((p: { name: string; value: string }) => p.name === 'MaxSpawns');
+
+        // Add spawn point to room
+        room.addEnemyType(enemyType, parseInt(quantityProperty?.value || '1'));
+        room.setMaxSpawns(enemyType, parseInt(maxSpawnsProperty?.value || '1'));
+      }
+    });
+  }
+
+  public setupProceduralEnemies(rooms: Map<string, Room>): void {
+    // Define enemy types and their spawn probabilities
+    const enemyTypes = [
+      { type: 'SKELETON' as EnemyType, weight: 30, minCount: 1, maxCount: 3 },
+      { type: 'ZOMBIE' as EnemyType, weight: 25, minCount: 1, maxCount: 2 },
+      { type: 'NINJA' as EnemyType, weight: 20, minCount: 1, maxCount: 2 },
+      { type: 'CHOMPER' as EnemyType, weight: 15, minCount: 1, maxCount: 2 },
+      { type: 'TROLL' as EnemyType, weight: 10, minCount: 1, maxCount: 1 }
+    ];
+
+    rooms.forEach((room, roomId) => {
+      // Skip the starting room (always room ID '1')
+      if (roomId === '1') {
+        console.log('Skipping enemy spawn for starting room');
+        return;
+      }
+
+      // Determine difficulty based on room distance from start
+      const roomNum = parseInt(roomId);
+      const difficultyMultiplier = Math.min(1 + (roomNum / 10), 2.5);
+
+      // Randomly select enemy types for this room
+      const selectedEnemies = this.selectRandomEnemies(enemyTypes, difficultyMultiplier);
+
+      // Add enemy types to room
+      selectedEnemies.forEach(enemy => {
+        room.addEnemyType(enemy.type, enemy.count);
+        room.setMaxSpawns(enemy.type, enemy.maxSpawns);
+      });
+    });
+  }
+
+  private selectRandomEnemies(enemyTypes: any[], difficultyMultiplier: number): any[] {
+    const selected = [];
+    const totalWeight = enemyTypes.reduce((sum, type) => sum + type.weight, 0);
+
+    // Determine number of different enemy types (1-3 based on difficulty)
+    const numTypes = Math.min(Math.floor(1 + Math.random() * difficultyMultiplier), 3);
+
+    for (let i = 0; i < numTypes; i++) {
+      let random = Math.random() * totalWeight;
+      
+      for (const enemyType of enemyTypes) {
+        random -= enemyType.weight;
+        if (random <= 0) {
+          const count = Math.floor(
+            enemyType.minCount + 
+            Math.random() * (enemyType.maxCount - enemyType.minCount + 1) * difficultyMultiplier
+          );
+          
+          selected.push({
+            type: enemyType.type,
+            count: Math.max(1, count),
+            maxSpawns: Math.ceil(count * 1.5) // Allow some respawns
+          });
+          break;
+        }
+      }
+    }
+
+    return selected;
+  }
+
+  public setupCollisions(): void {
+    const wallsLayer = (this.scene as MainScene).getWallsLayer();
+
+    this.setupPlayerSpellCollisions();
+
+    if (wallsLayer) {
+      // Enemy collisions with walls
+      this.scene.physics.add.collider(
+        this.enemies,
+        wallsLayer,
+        this.handleEnemyWallCollision,
+        undefined,
+        this
+      );
+    }
+
+    // Enemy overlap with player (for melee damage)
+    this.scene.physics.add.overlap(
+      this.enemies,
+      this.player,
+      this.handlePlayerEnemyOverlap,
+      undefined,
+      this
+    );
+  }
+
+  private setupPlayerSpellCollisions(): void {
+    const currentWand = this.player.getWand();
+    const deployableWand = this.player.getDeployableWand();
+
+    if (currentWand?.spells) {
+      this.scene.physics.add.collider(
+        this.enemies,
+        currentWand.spells,
+        this.handleEnemySpellCollision,
+        undefined,
+        this
+      );
+    }
+
+    if (deployableWand?.spells) {
+      this.scene.physics.add.collider(
+        this.enemies,
+        deployableWand.spells,
+        this.handleEnemySpellCollision,
+        undefined,
+        this
+      );
+    }
+  }
+
+  // Helper to set up collisions for a specific enemy's bullets
+  public setupEnemySpellCollisions(enemyInstance: Enemy) {
+    const wallsLayer = (this.scene as MainScene).getWallsLayer();
+
+    if (enemyInstance instanceof RangedEnemy && enemyInstance.wand && enemyInstance.wand.spells) {
+      // Enemy Bullets vs Player
+      this.scene.physics.add.collider(this.player, enemyInstance.wand.spells, this.handlePlayerSpellCollision, undefined, this);
+      // Enemy Bullets vs Walls
+      if (wallsLayer) {
+        this.scene.physics.add.collider(enemyInstance.wand.spells, wallsLayer, (this.scene as MainScene).handleSpellCollision, undefined, this);
+      }
+    }
+  }
+
+  // Handles collision between enemy bullets and the player
+  private handlePlayerSpellCollision(player: any, bullet: any) {
+    const playerInstance = player as Player;
+    const bulletInstance = bullet as PlainSpell;
+
+    if (!playerInstance.active || !bulletInstance.active) {
+      return;
+    }
+
+    playerInstance.takeDamage(bulletInstance.getDamage());
+    bulletInstance.deactivate();
+  }
+
+  private handleEnemyWallCollision(enemy: any, wall: any): void {
+    if (enemy instanceof Enemy) {
+      // Handle enemy wall collision (e.g., stop movement, change direction)
+      enemy.handleWallCollision();
+    }
+  }
+
+  private handleEnemySpellCollision(enemy: any, bullet: any): void {
+    const enemyInstance = enemy as Enemy;
+    const bulletInstance = bullet as PlainSpell;
+
+    if (!enemyInstance.active || !bulletInstance.active) {
+      return;
+    }
+
+    bulletInstance.deactivate();
+    enemyInstance.takeDamage(bulletInstance.getDamage());
+  }
+
+  private handlePlayerEnemyOverlap(player: any, enemy: any): void {
+    const playerInstance = player as Player;
+    const enemyInstance = enemy as Enemy;
+
+
+    if (enemyInstance.active && !(enemyInstance instanceof RangedEnemy) && enemyInstance.wand) {
+      enemyInstance.wand.dealDamage(enemyInstance, playerInstance);
+    }
+  }
+
+  public destroy(): void {
+
+    if (this.scene) {
+      this.scene.events.off(WandManager.SWAPPED_EVENT);
+    }
+
+    this.enemies.destroy(true);
+    this.enemies = null;
+    this.player = null;
+    this.scene = null;
+  }
+
+
+  public getEnemies(): Enemy[] {
+    return this.enemies.getChildren() as Enemy[];
+  }
+} 
