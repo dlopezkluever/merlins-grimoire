@@ -108,7 +108,7 @@ export class Item extends Phaser.Physics.Arcade.Sprite {
         }
     }
 
-    public collect(): void {
+    public collect(player?: any): void {
         if (!this.isCollected) {
             this.isCollected = true;
 
@@ -120,10 +120,11 @@ export class Item extends Phaser.Physics.Arcade.Sprite {
                 duration: 300,
                 ease: 'Power2',
                 onComplete: () => {
-                    // Emit the collected event with the item's position and data
+                    // Emit the collected event with the item's position, player, and data
                     this.scene.events.emit(this.getCollectEvent(), {
                         x: this.x,
                         y: this.y,
+                        player: player,
                         ...this.getCollectData()
                     });
 

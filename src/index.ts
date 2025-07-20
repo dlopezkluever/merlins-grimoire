@@ -19,18 +19,11 @@ const config: Phaser.Types.Core.GameConfig = {
     }
   },
   scale: {
-    mode: Phaser.Scale.FIT,
+    mode: Phaser.Scale.NONE, // Use NONE to prevent auto-scaling issues
     autoCenter: Phaser.Scale.CENTER_BOTH,
     width: 800,
     height: 600,
-    min: {
-      width: 400,
-      height: 300
-    },
-    max: {
-      width: 1920,
-      height: 1080
-    },
+    expandParent: true, // Allow canvas to expand beyond initial size
     fullscreenTarget: 'game'
   },
   pixelArt: true,

@@ -13,9 +13,18 @@ import { MazeGenerator, MazeData } from '../objects/maze/MazeGenerator';
 import { Treasure } from '../objects/items/Treasure';
 // MiniMap removed - no longer needed
 
+const DEBUG_MULTIPLAYER = true; // Keep on for setup debugging
+
+function debugLog(message: string, ...args: any[]) {
+  if (DEBUG_MULTIPLAYER) {
+    console.log(`[MULTIPLAYER DEBUG] ${message}`, ...args);
+  }
+}
+
 export class MainScene extends Scene {
   // Core game objects
   protected player: Player | null = null;
+  protected player2: Player | null = null; // Second player for multiplayer
   protected wallsLayer: Phaser.Tilemaps.TilemapLayer | null = null;
   protected mousePointer: Phaser.Input.Pointer | null = null;
 
@@ -31,6 +40,10 @@ export class MainScene extends Scene {
 
   // UI elements
   private quitPopup: Phaser.GameObjects.Container | null = null;
+  
+  // Split-screen cameras
+  private camera1: Phaser.Cameras.Scene2D.Camera | null = null;
+  private camera2: Phaser.Cameras.Scene2D.Camera | null = null;
 
   // Room system
   protected roomManager: RoomManager | null = null;
@@ -113,6 +126,12 @@ export class MainScene extends Scene {
 
     console.log('Game started!');
 
+    // Handle multiplayer canvas resize
+    if (this.isMultiplayer) {
+      console.log('Setting up multiplayer mode...');
+      this.scale.resize(1600, 800);
+    }
+
     this.setupInput();
     this.setupMap();
     this.setupPlayer();
@@ -130,12 +149,44 @@ export class MainScene extends Scene {
       }
     }
     
+    if (this.player2) {
+      const healthBar2 = (this.player2 as any).healthBar;
+      if (healthBar2 && healthBar2.forceReposition) {
+        healthBar2.forceReposition();
+      }
+    }
+    
     this.setupPhysics();
     this.setupPathfinding();
     this.setupBarrels();
     this.setupPotions();
     this.setupCollisions();
     // MiniMap removed - no longer needed
+    
+    // Debug summary for multiplayer
+    if (this.isMultiplayer) {
+      debugLog('=== MULTIPLAYER SETUP SUMMARY ===');
+      debugLog('Canvas size:', this.game.canvas.width, 'x', this.game.canvas.height);
+      debugLog('Scale size:', this.scale.gameSize.width, 'x', this.scale.gameSize.height);
+      debugLog('Player 1 position:', this.player.x, this.player.y);
+      debugLog('Player 2 position:', this.player2?.x, this.player2?.y);
+      debugLog('Main camera viewport:', {
+        x: this.cameras.main.x, 
+        y: this.cameras.main.y, 
+        width: this.cameras.main.width, 
+        height: this.cameras.main.height
+      });
+      debugLog('Camera2 viewport:', this.camera2 ? {
+        x: this.camera2.x, 
+        y: this.camera2.y, 
+        width: this.camera2.width, 
+        height: this.camera2.height
+      } : 'NOT_CREATED');
+      debugLog('Total children in scene:', this.children.length);
+      debugLog('Players in scene:', this.children.list.filter(child => child.type === 'Sprite' && (child as any).texture?.key?.includes?.('player')).length);
+      debugLog('Barrels in scene:', this.children.list.filter(child => (child as any).texture?.key?.includes?.('barrel')).length);
+      debugLog('=== END SUMMARY ===');
+    }
     
     // Enable debug visualization
     // this.physics.world.createDebugGraphic();
@@ -269,15 +320,40 @@ export class MainScene extends Scene {
     
     console.log('Spawning player at:', spawnX, spawnY, 'in room:', startRoom.id);
     
-    this.player = new Player(this, spawnX, spawnY);
+    // Create player 1
+    this.player = new Player(this, spawnX, spawnY, 1);
+    
+    // Create player 2 for multiplayer
+    if (this.isMultiplayer) {
+      // Spawn player 2 slightly offset from player 1
+      const offsetX = 50;
+      this.player2 = new Player(this, spawnX + offsetX, spawnY, 2);
+      
+      // Apply darker tint to player 2
+      this.player2.setTint(0x808080); // Darker gray tint
+      
+      // Setup player 2 death event
+      this.events.on('player2Died', (player: Player) => {
+        this.handlePlayerDeath(player);
+      });
+    }
     
     // Setup player death event
-    this.events.on('playerDied', this.handlePlayerDeath, this);
+    this.events.on('playerDied', (player: Player) => {
+      this.handlePlayerDeath(player);
+    });
   }
 
   private setupWandManager() {
     this.wandManager = new WandManager(this, this.player);
     this.wandManager.setupProceduralWandUpgrades(this.getRoomManager().getRooms());
+    
+    // In multiplayer, add player 2 to wand manager
+    if (this.isMultiplayer && this.player2) {
+      debugLog('Adding Player 2 to wand manager');
+      (this.wandManager as any).addPlayer(this.player2);
+      debugLog('Player 2 added to wand manager');
+    }
   }
 
   private setupCamera() {
@@ -285,9 +361,60 @@ export class MainScene extends Scene {
       console.error('Camera system not available');
       return;
     }
-    this.cameras.main.startFollow(this.player);
-    this.cameras.main.setZoom(1.5); // Zoom in a bit to see the maze better
-    this.cameras.main.setBounds(0, 0, this.mazeData.mapWidth * 32, this.mazeData.mapHeight * 32);
+
+    const worldBounds = {
+      x: 0,
+      y: 0,
+      width: this.mazeData.mapWidth * 32,
+      height: this.mazeData.mapHeight * 32
+    };
+
+    if (this.isMultiplayer) {
+      debugLog('Setting up multiplayer mode - FULL 1600x600');
+      
+      // Resize canvas to 1600x600 for multiplayer
+      const screenWidth = 1600;
+      const screenHeight = 600;
+      this.scale.resize(screenWidth, screenHeight);
+      
+      // Each player gets 800x600 view
+      const halfWidth = screenWidth / 2; // 800
+      
+      // Configure main camera for Player 1 (right half)
+      this.cameras.main.setViewport(halfWidth, 0, halfWidth, screenHeight);
+      this.cameras.main.startFollow(this.player);
+      this.cameras.main.setZoom(1.5);
+      this.cameras.main.setBounds(worldBounds.x, worldBounds.y, worldBounds.width, worldBounds.height);
+      debugLog('Player 1 camera (main) configured:', {
+        viewport: { x: halfWidth, y: 0, width: halfWidth, height: screenHeight },
+        bounds: worldBounds,
+        zoom: 1.5
+      });
+
+      // Create left camera for Player 2
+      this.camera2 = this.cameras.add(0, 0, halfWidth, screenHeight);
+      this.camera2.startFollow(this.player2);
+      this.camera2.setZoom(1.5);
+      this.camera2.setBounds(worldBounds.x, worldBounds.y, worldBounds.width, worldBounds.height);
+      debugLog('Player 2 camera created:', {
+        viewport: { x: 0, y: 0, width: halfWidth, height: screenHeight },
+        bounds: worldBounds,
+        zoom: 1.5
+      });
+
+      // Simple divider line
+      const divider = this.add.rectangle(halfWidth, screenHeight / 2, 2, screenHeight, 0x000000);
+      divider.setScrollFactor(0);
+      divider.setDepth(1000);
+      debugLog('Simple divider created');
+      
+      debugLog('Simplified multiplayer setup complete');
+    } else {
+      // Single player setup
+      this.cameras.main.startFollow(this.player);
+      this.cameras.main.setZoom(1.5);
+      this.cameras.main.setBounds(worldBounds.x, worldBounds.y, worldBounds.width, worldBounds.height);
+    }
   }
 
   private setupPhysics() {
@@ -301,6 +428,13 @@ export class MainScene extends Scene {
   private setupRooms() {
     this.roomManager = new RoomManager(this, this.player);
     this.roomManager.initializeRoomsFromMazeData(this.mazeData);
+    
+    // In multiplayer, set up room tracking for player 2
+    if (this.isMultiplayer && this.player2) {
+      debugLog('Adding Player 2 to game systems');
+      (this.roomManager as any).addPlayer(this.player2);
+      debugLog('Player 2 added to room manager');
+    }
 
     // Listen for room state changes
     this.events.on(Room.ROOM_STATE_CHANGED, (room: Room, state: RoomState) => {
@@ -345,6 +479,11 @@ export class MainScene extends Scene {
 
     // Create the treasure
     this.treasure = new Treasure(this, treasureX, treasureY, this.player);
+    
+    // Add player 2 if in multiplayer
+    if (this.isMultiplayer && this.player2) {
+      (this.treasure as any).addPlayer(this.player2);
+    }
   }
 
   private setupPathfinding() {
@@ -371,18 +510,56 @@ export class MainScene extends Scene {
   private setupBarrels() {
     this.barrelManager = new BarrelManager(this, this.player);
     this.barrelManager.createProceduralBarrels(this.getRoomManager().getRooms());
+    
+    // Add player 2 to barrel manager if in multiplayer
+    if (this.isMultiplayer && this.player2) {
+      (this.barrelManager as any).addPlayer(this.player2);
+    }
   }
 
   private setupPotions() {
     this.itemManager = new ItemManager(this, this.player);
     this.itemManager.setSpawnPoints(this.getRoomManager().getRooms());
     // No need to load from tilemap anymore - items will spawn from barrels
+    
+    // Add player 2 to item manager if in multiplayer
+    if (this.isMultiplayer && this.player2) {
+      (this.itemManager as any).addPlayer(this.player2);
+    }
   }
 
   protected setupEnemies() {
     this.movementManager = new MovementManager(this, this.player);
     this.enemyManager = new EnemyManager(this, this.player);
+    
+    // Add Player 2 to enemy manager in multiplayer
+    if (this.isMultiplayer && this.player2) {
+      debugLog('Adding Player 2 to enemy manager in setupEnemies');
+      (this.enemyManager as any).addPlayer(this.player2);
+      debugLog('Player 2 added to enemy manager in setupEnemies');
+    }
+    
     this.enemyManager.setupProceduralEnemies(this.getRoomManager().getRooms());
+    
+    // In multiplayer, setup random targeting (player already added in enemy manager setup)
+    if (this.isMultiplayer && this.player2) {
+      // Add a method to the scene that enemies can use to get a random target
+      (this as any).getRandomPlayer = () => {
+        // 50/50 chance to target either player
+        return Math.random() < 0.5 ? this.player : this.player2;
+      };
+      
+      // Also provide a method to get all players
+      (this as any).getAllPlayers = () => {
+        return [this.player, this.player2];
+      };
+    } else {
+      // Single player mode
+      (this as any).getRandomPlayer = () => this.player;
+      (this as any).getAllPlayers = () => [this.player];
+    }
+    
+    // Player 2 already added to enemy manager during setupEnemies()
   }
 
 
@@ -391,6 +568,17 @@ export class MainScene extends Scene {
     // Collisions with walls
     if (this.wallsLayer) {
       this.physics.add.collider(this.player, this.wallsLayer); // Player vs Walls
+      
+      // Player 2 collisions with walls
+      if (this.isMultiplayer && this.player2) {
+        this.physics.add.collider(this.player2, this.wallsLayer);
+      }
+    }
+    
+    // Players can't damage each other - no collision between them
+    if (this.isMultiplayer && this.player2) {
+      // Players pass through each other
+      this.physics.add.overlap(this.player, this.player2, undefined, () => false);
     }
 
     if (this.wandManager) {
@@ -433,35 +621,155 @@ export class MainScene extends Scene {
   }
 
 
-  // Handle player death
-  private handlePlayerDeath(): void {
+  // Handle player death with respawn
+  private handlePlayerDeath(deadPlayer?: Player): void {
     if (this.gameOver) return;
 
-    // PROPERLY stop all player movement and physics
-    this.player.setVelocity(0, 0);
-    this.player.setAcceleration(0, 0);
-    this.player.setActive(false);
+    // Determine which player died
+    const playerToRespawn = deadPlayer || this.player;
+    const isPlayer2 = playerToRespawn === this.player2;
     
-    // Get the physics body and disable it completely
-    const body = this.player.body as Phaser.Physics.Arcade.Body;
+    // Disable the dead player temporarily
+    playerToRespawn.setActive(false);
+    playerToRespawn.setVisible(false);
+    
+    // Get the physics body and disable it
+    const body = playerToRespawn.body as Phaser.Physics.Arcade.Body;
     if (body) {
       body.setVelocity(0, 0);
-      body.setAcceleration(0, 0);
-      body.setDrag(1000); // High drag to stop any residual movement
-      body.setMaxVelocity(0); // Prevent any movement
-      body.setEnable(false); // Disable the physics body completely
+      body.setEnable(false);
     }
     
-    // STOP camera from following the player
-    this.cameras.main.stopFollow();
+    // Show death modal
+    this.showDeathModal(isPlayer2);
     
-    // Get CURRENT camera center position (not player position)
+    // Respawn after 3 second delay
+    this.time.delayedCall(3000, () => {
+      this.hideDeathModal(isPlayer2);
+      this.respawnPlayer(playerToRespawn, isPlayer2);
+    });
+  }
+  
+  private deathModalContainers: { [key: number]: Phaser.GameObjects.Container } = {};
+  
+  private showDeathModal(isPlayer2: boolean): void {
+    const playerId = isPlayer2 ? 2 : 1;
+    
+    // Get the appropriate camera position
+    let x: number, y: number;
+    if (this.isMultiplayer) {
+      const screenWidth = 1600;
+      const screenHeight = 800;
+      if (isPlayer2) {
+        // Player 2 (left side)
+        x = screenWidth / 4;
+        y = screenHeight / 2;
+      } else {
+        // Player 1 (right side)
+        x = (screenWidth / 4) * 3;
+        y = screenHeight / 2;
+      }
+    } else {
+      // Single player - center of screen
+      x = this.cameras.main.width / 2;
+      y = this.cameras.main.height / 2;
+    }
+    
+    // Create modal container
+    const container = this.add.container(x, y);
+    container.setScrollFactor(0);
+    container.setDepth(200);
+    
+    // Semi-transparent overlay
+    const overlay = this.add.rectangle(0, 0, 400, 200, 0x000000, 0.85);
+    
+    // Border
+    const border = this.add.rectangle(0, 0, 400, 200, 0x000000, 0);
+    border.setStrokeStyle(4, 0xFFB300);
+    
+    // Update modal style to match victory modal
+    overlay.fillColor = 0x263238;
+    overlay.setAlpha(0.85);
+    
+    // Message text
+    const messageText = this.add.text(0, -30, 'Thy journey hath endth', {
+      fontFamily: 'Arial, serif',
+      fontSize: '24px',
+      color: '#FFB300',
+      stroke: '#2A1A4A',
+      strokeThickness: 3
+    });
+    messageText.setOrigin(0.5);
+    
+    const subText = this.add.text(0, 10, 'But thy journey shall begin again soon.', {
+      fontFamily: 'Arial, serif',
+      fontSize: '18px',
+      color: '#FFFFFF'
+    });
+    subText.setOrigin(0.5);
+    
+    container.add([overlay, border, messageText, subText]);
+    
+    // Store the container so we can remove it later
+    this.deathModalContainers[playerId] = container;
+    
+    // In multiplayer, ensure modal is only visible in the correct camera
+    if (this.isMultiplayer) {
+      if (playerId === 1) {
+        this.camera2?.ignore(container);
+      } else {
+        this.camera1?.ignore(container);
+      }
+    }
+  }
+  
+  private hideDeathModal(isPlayer2: boolean): void {
+    const playerId = isPlayer2 ? 2 : 1;
+    const container = this.deathModalContainers[playerId];
+    if (container) {
+      container.destroy();
+      delete this.deathModalContainers[playerId];
+    }
+  }
+
+  private respawnPlayer(player: Player, isPlayer2: boolean): void {
+    // Find the start room
+    const startRoom = this.mazeData.rooms.find(r => r.roomType === 'start') || this.mazeData.rooms[0];
+    const tileSize = 32;
+    let spawnX = (startRoom.x + startRoom.width / 2) * tileSize;
+    const spawnY = (startRoom.y + startRoom.height / 2) * tileSize;
+    
+    // Offset player 2
+    if (isPlayer2) {
+      spawnX += 50;
+    }
+    
+    // Reset player position
+    player.setPosition(spawnX, spawnY);
+    
+    // Reset player state
+    player.setActive(true);
+    player.setVisible(true);
+    (player as any).resetHealth(); // Reset health to full
+    (player as any).resetWand(); // Reset wand to base state
+    (player as any).clearInventory(); // Clear inventory
+    
+    // Re-enable physics
+    const body = player.body as Phaser.Physics.Arcade.Body;
+    if (body) {
+      body.setEnable(true);
+      body.setVelocity(0, 0);
+    }
+  }
+
+  // Old game over code - keeping for single player mode if needed later
+  private showGameOverScreen(): void {
+    // Get camera center position
     const cameraCenterX = this.cameras.main.scrollX + this.cameras.main.width / 2;
     const cameraCenterY = this.cameras.main.scrollY + this.cameras.main.height / 2;
     const cameraWidth = this.cameras.main.width;
     const cameraHeight = this.cameras.main.height;
-
-    // Create semi-transparent dark overlay
+    
     const overlay = this.add.rectangle(cameraCenterX, cameraCenterY, cameraWidth, cameraHeight, 0x263238, 0.85);
     overlay.setOrigin(0.5);
     overlay.setDepth(100); // Ensure it's above other elements
@@ -609,6 +917,12 @@ export class MainScene extends Scene {
     
     const mainMenuButton = createButton(0, 40, 'MAIN MENU', () => {
       this.closeQuitPopup();
+      
+      // Reset canvas size if in multiplayer
+      if (this.isMultiplayer) {
+        this.scale.resize(800, 600);
+      }
+      
       this.shutdown();
       this.scene.start('MenuScene');
     });
@@ -643,11 +957,22 @@ export class MainScene extends Scene {
   }
 
   // Handle treasure discovery victory
-  public handleTreasureVictory(): void {
+  public handleTreasureVictory(winningPlayer?: Player): void {
     if (this.gameOver) {
       return;
     }
+    
+    // Determine the winning player
+    const winner = winningPlayer || this.player;
+    const isPlayer2Winner = winner === this.player2;
 
+    // Handle multiplayer victory
+    if (this.isMultiplayer) {
+      this.showMultiplayerVictory(isPlayer2Winner);
+      return;
+    }
+    
+    // Single player victory - continue with existing code
     // PROPERLY stop all player movement and physics
     this.player.setVelocity(0, 0);
     this.player.setAcceleration(0, 0);
@@ -917,6 +1242,9 @@ export class MainScene extends Scene {
     if (this.player) {
       this.player.destroy();
     }
+    if (this.player2) {
+      this.player2.destroy();
+    }
 
     // Clean up managers
     if (this.roomManager) {
@@ -954,6 +1282,12 @@ export class MainScene extends Scene {
       this.quitPopup.destroy();
       this.quitPopup = null;
     }
+    
+    // Clean up death modals
+    Object.values(this.deathModalContainers).forEach(container => {
+      container.destroy();
+    });
+    this.deathModalContainers = {};
 
     // Clean up input
     if (this.input && this.input.keyboard) {
@@ -961,7 +1295,8 @@ export class MainScene extends Scene {
     }
 
     // Clean up events
-    this.events.removeListener('playerDied', this.handlePlayerDeath, this);
+          this.events.removeAllListeners('playerDied');
+      this.events.removeAllListeners('player2Died');
 
     // Clean up tilemap layers
     if (this.wallsLayer) {
@@ -977,5 +1312,123 @@ export class MainScene extends Scene {
     this.movementManager = null;
     this.treasure = null;
     // MiniMap removed - no longer needed
+  }
+
+  private showMultiplayerVictory(isPlayer2Winner: boolean): void {
+    // Stop both players
+    [this.player, this.player2].forEach(player => {
+      if (player) {
+        player.setVelocity(0, 0);
+        player.setAcceleration(0, 0);
+        player.setActive(false);
+        
+        const body = player.body as Phaser.Physics.Arcade.Body;
+        if (body) {
+          body.setVelocity(0, 0);
+          body.setAcceleration(0, 0);
+          body.setEnable(false);
+        }
+      }
+    });
+
+    const screenWidth = 1600;
+    const screenHeight = 800;
+    
+    // Show winner modal
+          const winnerX = isPlayer2Winner ? 400 : 1200; // Center of each half (800px wide)
+      const winnerY = 300; // Center vertically (600px height)
+    
+    const winnerContainer = this.add.container(winnerX, winnerY);
+    winnerContainer.setScrollFactor(0);
+    winnerContainer.setDepth(200);
+    
+    // Winner overlay
+    const winnerOverlay = this.add.rectangle(0, 0, 350, 200, 0x263238, 0.85);
+    const winnerBorder = this.add.rectangle(0, 0, 350, 200, 0x000000, 0);
+    winnerBorder.setStrokeStyle(4, 0xFFB300);
+    
+    // Winner text
+    const winnerText = this.add.text(0, -50, 'VICTORY!', {
+      fontFamily: 'Arial, serif',
+      fontSize: '42px',
+      color: '#FFB300',
+      stroke: '#2A1A4A',
+      strokeThickness: 4
+    });
+    winnerText.setOrigin(0.5);
+    
+    const winnerSubtext = this.add.text(0, 0, 'King Arthur shall be pleased', {
+      fontFamily: 'Arial, serif',
+      fontSize: '24px',
+      color: '#FFFFFF'
+    });
+    winnerSubtext.setOrigin(0.5);
+    
+    const winnerSubtext2 = this.add.text(0, 30, 'with thy performance!', {
+      fontFamily: 'Arial, serif',
+      fontSize: '24px',
+      color: '#FFFFFF'
+    });
+    winnerSubtext2.setOrigin(0.5);
+    
+    winnerContainer.add([winnerOverlay, winnerBorder, winnerText, winnerSubtext, winnerSubtext2]);
+    
+          // Show loser modal
+      const loserX = isPlayer2Winner ? 1200 : 400; // Opposite of winner
+      const loserY = 300; // Center vertically
+    
+    const loserContainer = this.add.container(loserX, loserY);
+    loserContainer.setScrollFactor(0);
+    loserContainer.setDepth(200);
+    
+    // Loser overlay
+    const loserOverlay = this.add.rectangle(0, 0, 350, 200, 0x263238, 0.85);
+    const loserBorder = this.add.rectangle(0, 0, 350, 200, 0x000000, 0);
+    loserBorder.setStrokeStyle(4, 0xFFB300);
+    
+    // Loser text
+    const loserText = this.add.text(0, -50, 'Pity, Thou art a loser!', {
+      fontFamily: 'Arial, serif',
+      fontSize: '32px',
+      color: '#FFB300',
+      stroke: '#2A1A4A',
+      strokeThickness: 4
+    });
+    loserText.setOrigin(0.5);
+    
+    const loserSubtext = this.add.text(0, 0, 'Thou shalt lead a life of', {
+      fontFamily: 'Arial, serif',
+      fontSize: '20px',
+      color: '#FFFFFF'
+    });
+    loserSubtext.setOrigin(0.5);
+    
+    const loserSubtext2 = this.add.text(0, 25, 'impoverished shame', {
+      fontFamily: 'Arial, serif',
+      fontSize: '20px',
+      color: '#FFFFFF'
+    });
+    loserSubtext2.setOrigin(0.5);
+    
+    const loserSubtext3 = this.add.text(0, 50, 'from this day onward!', {
+      fontFamily: 'Arial, serif',
+      fontSize: '20px',
+      color: '#FFFFFF'
+    });
+    loserSubtext3.setOrigin(0.5);
+    
+    loserContainer.add([loserOverlay, loserBorder, loserText, loserSubtext, loserSubtext2, loserSubtext3]);
+    
+    // Make sure modals are visible in correct cameras
+    if (isPlayer2Winner) {
+      this.camera1?.ignore(winnerContainer);
+      this.camera2?.ignore(loserContainer);
+    } else {
+      this.camera2?.ignore(winnerContainer);
+      this.camera1?.ignore(loserContainer);
+    }
+    
+    // Set game over flag
+    this.gameOver = true;
   }
 }

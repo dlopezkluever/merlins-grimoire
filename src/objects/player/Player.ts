@@ -12,6 +12,15 @@ import { DeployableWand } from '../wands/DeployableWand';
 import { SpellBot } from '../items/SpellBot';
 import { MainScene } from '../../scenes/MainScene';
 
+// Add at the top
+const DEBUG_PLAYER = false; // Reduced to prevent log spam
+
+function debugLog(message: string, ...args: any[]) {
+  if (DEBUG_PLAYER) {
+    console.log(`[PLAYER DEBUG] ${message}`, ...args);
+  }
+}
+
 // Extend Physics.Arcade.Sprite for physics and preUpdate
 export class Player extends Physics.Arcade.Sprite {
   // Removed redundant body declaration, it's inherited
@@ -41,7 +50,7 @@ export class Player extends Physics.Arcade.Sprite {
   private cursors: Phaser.Types.Input.Keyboard.CursorKeys | null = null;
   private keys: { [key: string]: Phaser.Input.Keyboard.Key } | null = null;
 
-  constructor(scene: Scene, x: number, y: number) {
+  constructor(scene: Scene, x: number, y: number, public playerId: number = 1) {
     super(scene, x, y, 'merlin-idle');
 
     this.setupPhysics(scene);
@@ -50,6 +59,14 @@ export class Player extends Physics.Arcade.Sprite {
     this.setupUI(scene);
     this.setupEventListeners(scene);
     this.setupAnimations(scene);
+
+    debugLog(`Player ${this.playerId} created at position:`, x, y);
+    debugLog(`Player ${this.playerId} physics body:`, this.body ? 'EXISTS' : 'MISSING');
+    if (this.body) {
+      const body = this.body as Phaser.Physics.Arcade.Body;
+      debugLog(`Player ${this.playerId} body size:`, body.width, 'x', body.height);
+      debugLog(`Player ${this.playerId} body position:`, body.x, body.y);
+    }
   }
 
   private setupPhysics(scene: Scene): void {
@@ -74,14 +91,22 @@ export class Player extends Physics.Arcade.Sprite {
   }
 
   private setupInput(scene: Scene): void {
-    // Set up WASD keys
-    this.cursors = scene.input.keyboard.createCursorKeys();
-    this.keys = {
-      up: scene.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.W),
-      down: scene.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.S),
-      left: scene.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.A),
-      right: scene.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.D)
-    };
+    if (this.playerId === 1) {
+      // Player 1: Arrow keys, P for potions, M for study
+      this.cursors = scene.input.keyboard.createCursorKeys();
+      // Don't set up WASD keys for player 1
+      this.keys = null;
+    } else {
+      // Player 2: WASD movement, T for potions, R for study
+      this.keys = {
+        up: scene.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.W),
+        down: scene.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.S),
+        left: scene.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.A),
+        right: scene.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.D)
+      };
+      // Don't set up arrow keys for player 2
+      this.cursors = null;
+    }
 
     // Set up touch input
     scene.input.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
@@ -106,7 +131,12 @@ export class Player extends Physics.Arcade.Sprite {
 
   private setupUI(scene: Scene): void {
     // Initialize health bar
-    this.healthBar = new HealthBar(scene, this, 150, 10, true);
+    console.log(`[PLAYER ${this.playerId}] setupUI called - creating health bar`);
+    if (this.healthBar) {
+      console.log(`[PLAYER ${this.playerId}] WARNING: Health bar already exists! Destroying old one.`);
+      this.healthBar.destroy();
+    }
+    this.healthBar = new HealthBar(scene, this, 150, 10, true, this.playerId);
     this.healthBar.setHealth(this.currentHealth, this.maxHealth);
 
     // Initialize weapon overlay
@@ -115,14 +145,20 @@ export class Player extends Physics.Arcade.Sprite {
   }
 
   private setupEventListeners(scene: Scene): void {
-    scene.events.on(HealthPotion.COLLECTED_EVENT, (data: { x: number, y: number, healAmount: number }) => {
-      this.heal(data.healAmount);
-      this.showFloatingImage('health-potion');
+    scene.events.on(HealthPotion.COLLECTED_EVENT, (data: { x: number, y: number, healAmount: number, player?: any }) => {
+      // Only apply if this player collected the item
+      if (!data.player || data.player === this) {
+        this.heal(data.healAmount);
+        this.showFloatingImage('health-potion');
+      }
     });
 
-    scene.events.on(SparkBoost.COLLECTED_EVENT, (data: { x: number, y: number, speedBoost: number }) => {
-      this.applySpeedBoost(data.speedBoost);
-      this.showFloatingImage('spark-boost');
+    scene.events.on(SparkBoost.COLLECTED_EVENT, (data: { x: number, y: number, speedBoost: number, player?: any }) => {
+      // Only apply if this player collected the item
+      if (!data.player || data.player === this) {
+        this.applySpeedBoost(data.speedBoost);
+        this.showFloatingImage('spark-boost');
+      }
     });
 
     scene.events.on(Room.ROOM_STATE_CHANGED, (room: Room, state: RoomState) => {
@@ -158,12 +194,21 @@ export class Player extends Physics.Arcade.Sprite {
   }
 
   private handleKeyboardMovement(body: Physics.Arcade.Body): boolean {
-    if (!this.cursors || !this.keys) return false;
+    let up = false, down = false, left = false, right = false;
 
-    const up = this.cursors.up?.isDown || this.keys['up'].isDown;
-    const down = this.cursors.down?.isDown || this.keys['down'].isDown;
-    const left = this.cursors.left?.isDown || this.keys['left'].isDown;
-    const right = this.cursors.right?.isDown || this.keys['right'].isDown;
+    if (this.cursors) {
+      up = this.cursors.up?.isDown || false;
+      down = this.cursors.down?.isDown || false;
+      left = this.cursors.left?.isDown || false;
+      right = this.cursors.right?.isDown || false;
+    }
+    
+    if (this.keys) {
+      up = up || this.keys['up'].isDown;
+      down = down || this.keys['down'].isDown;
+      left = left || this.keys['left'].isDown;
+      right = right || this.keys['right'].isDown;
+    }
 
     if (!(up || down || left || right)) return false;
 
@@ -242,6 +287,19 @@ export class Player extends Physics.Arcade.Sprite {
     if (this.active) {
       this.handleAutoTargeting();
     }
+
+    // Reduced movement debugging (only log every 60 frames to reduce spam)
+    if (this.cursors && this.scene.game.loop.frame % 60 === 0) {
+      const isMoving = this.cursors.left.isDown || this.cursors.right.isDown || 
+                      this.cursors.up.isDown || this.cursors.down.isDown;
+      
+      if (isMoving) {
+        debugLog(`Player ${this.playerId} moving:`, {
+          position: { x: Math.round(this.x), y: Math.round(this.y) },
+          velocity: this.body ? { x: Math.round((this.body as any).velocity.x), y: Math.round((this.body as any).velocity.y) } : 'NO_BODY'
+        });
+      }
+    }
   }
 
   public getWand(): Wand {
@@ -252,15 +310,65 @@ export class Player extends Physics.Arcade.Sprite {
     return this.deployableWand;
   }
 
+  // Reset methods for respawning
+  public resetHealth(): void {
+    console.log(`[PLAYER ${this.playerId}] resetHealth() called - reviving player`);
+    this.currentHealth = this.maxHealth;
+    console.log(`[PLAYER ${this.playerId}] Health reset to:`, this.currentHealth, '/', this.maxHealth);
+    this.healthBar.setHealth(this.currentHealth, this.maxHealth);
+    // Force health bar to reposition and be visible
+    this.healthBar.forceReposition();
+    console.log(`[PLAYER ${this.playerId}] Calling healthBar.setVisible(true)`);
+    this.healthBar.setVisible(true);
+    console.log(`[PLAYER ${this.playerId}] resetHealth() complete`);
+  }
+
+  public resetWand(): void {
+    // Reset wand to base state
+    this.fireRate = 500;
+    
+    // Import WandFactory if available and reset to basic wand
+    const WandFactory = (this.scene as any).registry?.get('WandFactory');
+    if (WandFactory) {
+      const basicWand = WandFactory.createPlayerWand(this.scene, 'BASIC');
+      if (basicWand && this.wand) {
+        // Copy properties from basic wand
+        (this.wand as any).fireRate = basicWand.fireRate;
+        (this.wand as any).damage = basicWand.damage;
+        (this.wand as any).projectileSpeed = basicWand.projectileSpeed;
+        (this.wand as any).projectileTexture = basicWand.projectileTexture;
+      }
+    }
+  }
+
+  public clearInventory(): void {
+    // Clear any inventory items - implementation depends on inventory system
+    // This would be implemented when inventory system is added
+  }
+
   public hasDeployableWand(): boolean {
     return this.deployableWand !== null;
   }
 
   // Method to take damage
-  public takeDamage(amount: number = 10): void {
-    if (this.isInvulnerable) return;
+  public takeDamage(amount: number = 10, source?: string): void {
+    console.log(`[PLAYER ${this.playerId}] TAKE DAMAGE - amount:`, amount, 'from:', source || 'unknown');
+    console.log(`[PLAYER ${this.playerId}] Current health BEFORE damage:`, this.currentHealth);
+    
+    if (this.isInvulnerable) {
+      console.log(`[PLAYER ${this.playerId}] Is invulnerable, ignoring damage`);
+      return;
+    }
+
+    if (this.currentHealth <= 0) {
+      console.log(`[PLAYER ${this.playerId}] Already dead, ignoring damage`);
+      return;
+    }
 
     this.currentHealth = Math.max(0, this.currentHealth - amount);
+    console.log(`[PLAYER ${this.playerId}] Health AFTER damage:`, this.currentHealth);
+    console.log(`[PLAYER ${this.playerId}] Calling healthBar.setHealth with:`, this.currentHealth, '/', this.maxHealth);
+    
     this.healthBar.setHealth(this.currentHealth, this.maxHealth);
 
     // Visual feedback - flash red
@@ -387,15 +495,22 @@ export class Player extends Physics.Arcade.Sprite {
 
   // Method to handle player death
   private die(): void {
+    console.log(`[PLAYER ${this.playerId}] die() called - player dying`);
     // Disable player controls
     this.setActive(false);
     this.setVisible(false);
 
     // Hide health bar
+    console.log(`[PLAYER ${this.playerId}] Hiding health bar on death`);
     this.healthBar.setVisible(false);
 
     // Emit an event that the scene can listen for
-    this.scene.events.emit('playerDied');
+          // Emit different events based on player ID
+      if (this.playerId === 2) {
+        this.scene.events.emit('player2Died', this);
+      } else {
+        this.scene.events.emit('playerDied', this);
+      }
   }
 
   // Method to check if player is dead

@@ -4,6 +4,14 @@ import { Room, RoomState } from "../rooms/Room";
 import { Player } from "../player/Player";
 import { MainScene } from "../../scenes/MainScene";
 
+const DEBUG_ENEMY_SPAWNER = true;
+
+function debugLog(message: string, ...args: any[]) {
+  if (DEBUG_ENEMY_SPAWNER) {
+    console.log(`[ENEMY SPAWNER DEBUG] ${message}`, ...args);
+  }
+}
+
 export class EnemySpawner {
     private scene: Scene;
     private spawnRate: number = 500;
@@ -18,14 +26,19 @@ export class EnemySpawner {
         this.room = room;
     }
 
-    public spawnEnemies() {
+    public spawnEnemies(): void {
+        debugLog('spawnEnemies called for room:', this.room.getId());
+        
         // Get a random point for spawning
         this.getRandomPoint().then(points => {
             if (points && points.length > 0) {
                 if (!this.room.canSpawnEnemies()) {
+                    debugLog('Room cannot spawn enemies');
                     return;
                 }
                 const enemyTypes = this.room.getEnemyTypesToSpawn();
+                debugLog('Enemy types to spawn:', enemyTypes.length);
+                
                 // Schedule next enemy spawn after delay
                 this.scene.time.delayedCall(200, () => {
                     this.spawnEnemyWithDelay(points, enemyTypes);
@@ -78,7 +91,13 @@ export class EnemySpawner {
         this.room.setWorkingSpawnPoint(point.x, point.y);
 
         this.room.addEnemy(enemy);
-        enemy.setPlayer(this.player);
+        
+        // In multiplayer, randomly assign a target player
+        const targetPlayer = (this.scene as any).getRandomPlayer ? 
+            (this.scene as any).getRandomPlayer() : 
+            this.player;
+        enemy.setPlayer(targetPlayer);
+        
         this.scene.events.emit(EnemySpawner.ENEMY_CREATED, { enemy: enemy });
 
 

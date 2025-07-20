@@ -9,6 +9,7 @@ import { Room } from "../rooms/Room";
 
 export class WandManager {
   private player: Player | null = null;
+  private players: Player[] = [];
   private scene: Scene;
   private wandUpgrades: WandUpgrade[] = [];
   public static readonly SWAPPED_EVENT = 'wand-swapped';
@@ -16,6 +17,21 @@ export class WandManager {
   constructor(scene: Scene, player: Player) {
     this.scene = scene;
     this.player = player;
+    this.players = [player];
+  }
+
+  public addPlayer(player: Player): void {
+    this.players.push(player);
+    // Set up collision for existing wand upgrades
+    this.wandUpgrades.forEach(upgrade => {
+      this.scene.physics.add.overlap(
+        player,
+        upgrade,
+        this.onEnterUpgradeArea,
+        undefined,
+        this
+      );
+    });
   }
 
   public setupWandUpgrades(itemsLayer: Phaser.Tilemaps.ObjectLayer): void {
@@ -111,21 +127,23 @@ export class WandManager {
   }
 
   private onEnterUpgradeArea(player: any, upgrade: any): void {
-    if (!this.player) return;
+    // Use the player that actually touched the upgrade
+    const playerInstance = player as Player;
+    if (!playerInstance) return;
 
     let newWand = null;
     // Get the new wand from the upgrade
     const wandUpgrade = upgrade as WandUpgrade;
     if (!wandUpgrade.wand) return;
     if (wandUpgrade.wand.isDeployable()) {
-      newWand = wandUpgrade.swapWand(this.player.getDeployableWand() as Wand);
+      newWand = wandUpgrade.swapWand(playerInstance.getDeployableWand() as Wand);
     } else {
-      newWand = wandUpgrade.swapWand(this.player.getWand());
+      newWand = wandUpgrade.swapWand(playerInstance.getWand());
     }
 
     if (newWand) {
       // Update the player's wand
-      this.player.swapWand(newWand);
+      playerInstance.swapWand(newWand);
 
       // Create upgrade effect
       this.createPlayerUpgradeEffect();

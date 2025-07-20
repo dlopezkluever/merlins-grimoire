@@ -274,9 +274,7 @@ export class MenuScene extends Phaser.Scene {
     this.isMultiplayer = true;
     sessionStorage.setItem('isMultiplayer', 'true');
     
-    // Resize canvas for 2-player
-    this.scale.resize(1600, 800);
-    
+    // Canvas will be resized when entering MainScene
     this.scene.start('ChemistryLevelSelectScene');
   }
 

@@ -1,5 +1,13 @@
 import { Scene, GameObjects } from 'phaser';
 
+const DEBUG_HEALTHBAR = false; // Reduced to prevent log spam
+
+function debugLog(message: string, ...args: any[]) {
+  if (DEBUG_HEALTHBAR) {
+    console.log(`[HEALTHBAR DEBUG] ${message}`, ...args);
+  }
+}
+
 export class HealthBar {
   private scene: Scene;
   private parent: Phaser.GameObjects.GameObject;
@@ -20,7 +28,8 @@ export class HealthBar {
     parent: Phaser.GameObjects.GameObject,
     width: number = 150,
     height: number = 10,
-    isPlayerBar: boolean = false
+    isPlayerBar: boolean = false,
+    playerId: number = 1
   ) {
     this.scene = scene;
     this.parent = parent;
@@ -29,32 +38,94 @@ export class HealthBar {
     this.currentHealth = 100;
     this.maxHealth = 100;
     this.isPlayerBar = isPlayerBar;
+    this.visible = true; // Initialize visibility
+    
+    if (this.isPlayerBar) {
+      console.log('[PLAYER HEALTHBAR] Constructor - Initial health:', this.currentHealth, '/', this.maxHealth);
+      console.log('[PLAYER HEALTHBAR] Creating new health bar for player:', playerId);
+    }
+
+    debugLog(`Creating health bar for ${this.isPlayerBar ? 'Player' : 'Enemy'}`, 
+      this.isPlayerBar ? `(Player ${playerId})` : '', 
+      'Multiplayer:', (scene as any).isMultiplayer);
 
     if (this.isPlayerBar) {
-      // For player bar, use a container approach like WandOverlay
-      const camera = scene.cameras.main;
+      // For player bar, position based on playerId in multiplayer
+      const isMultiplayer = (scene as any).isMultiplayer;
+      let x: number, y: number;
       
-      // Account for zoom to find actual visible area
-      const zoom = camera.zoom || 1;
-      const visibleWidth = camera.width / zoom;
-      const visibleHeight = camera.height / zoom;
+      if (isMultiplayer) {
+        // Split screen positioning - different positions for each player
+        const cameraWidth = 800; // Each camera is 800px wide
+        const cameraHeight = 600; // Each camera is 600px tall
+        
+        if (playerId === 1) {
+          // Player 1 - RIGHT side (main camera at x: 800-1600)
+          x = 800 + (cameraWidth / 2); // 1200 (center of right viewport)
+          y = cameraHeight - this.height - this.padding; // 580
+        } else {
+          // Player 2 - LEFT side (camera2 at x: 0-800)  
+          x = cameraWidth / 2; // 400 (center of left viewport)
+          y = cameraHeight - this.height - this.padding; // 580
+        }
+        
+        console.log(`[HEALTHBAR] Calculated position for player ${playerId}:`, x, y, 'cameraHeight:', cameraHeight);
+      } else {
+        // Single player - use original positioning
+        const camera = scene.cameras.main;
+        const zoom = camera.zoom || 1;
+        const visibleWidth = camera.width / zoom;
+        const visibleHeight = camera.height / zoom;
+        const centerX = camera.width / 2;
+        const centerY = camera.height / 2;
+        x = centerX + (visibleWidth / 2) - this.width - this.padding;
+        y = centerY + (visibleHeight / 2) - this.height - this.padding;
+      }
       
-      // Center of the viewport in screen coordinates
-      const centerX = camera.width / 2;
-      const centerY = camera.height / 2;
+      console.log(`[HEALTHBAR] Player ${playerId} health bar position:`, x, y);
+      console.log(`[HEALTHBAR] isMultiplayer:`, isMultiplayer);
+      console.log(`[HEALTHBAR] Padding:`, this.padding);
       
-      // Calculate bottom-right position within visible area
-      const x = centerX + (visibleWidth / 2) - this.width - this.padding;
-      const y = centerY + (visibleHeight / 2) - this.height - this.padding;
+      // Offset x to center the health bar
+      const containerX = x - (this.width / 2);
       
-      this.container = scene.add.container(x, y);
+      this.container = scene.add.container(containerX, y);
       this.container.setScrollFactor(0); // Fixed to screen
       this.container.setDepth(100);
+      this.container.setVisible(true); // Ensure visibility
+      
+      console.log(`[HEALTHBAR] Player ${playerId} health bar container created at:`, containerX, y);
+      console.log(`[HEALTHBAR] Container dimensions:`, this.width, 'x', this.height);
+      console.log(`[HEALTHBAR] Container visible:`, this.container.visible);
       
       // Create the health bar graphics inside the container
       this.bar = scene.add.graphics();
       this.container.add(this.bar);
+      console.log('[PLAYER HEALTHBAR] Graphics added to container. Bar:', this.bar, 'Container children:', this.container.list.length);
+      
+      // In multiplayer, ensure health bar is visible in the correct camera
+              if (isMultiplayer) {
+          debugLog(`Setting up camera visibility for Player ${playerId}`);
+          // Get the cameras
+          const mainCamera = scene.cameras.main; // Player 1 camera (right side)
+          const camera2 = (scene as any).camera2; // Player 2 camera (left side)
+          
+          if (mainCamera && camera2) {
+            if (playerId === 1) {
+              // Player 1 health bar only visible in main camera (right side)
+              camera2.ignore(this.container);
+              debugLog('Player 1 health bar hidden from camera2 (left)');
+            } else {
+              // Player 2 health bar only visible in camera2 (left side)
+              mainCamera.ignore(this.container);
+              debugLog('Player 2 health bar hidden from main camera (right)');
+            }
+          } else {
+            debugLog('WARNING: Cameras not found for multiplayer health bar setup');
+          }
+        }
     } else {
+      debugLog('Enemy health bar created');
       // For enemy bars, use the regular approach
       this.bar = scene.add.graphics();
       this.bar.setDepth(100);
@@ -65,6 +136,7 @@ export class HealthBar {
     
     // Ensure we draw the health bar after positioning
     this.draw();
+    debugLog(`Health bar initialization complete for ${this.isPlayerBar ? 'Player' : 'Enemy'}`);
   }
 
   public setHealth(current: number, max: number): void {
@@ -72,19 +144,31 @@ export class HealthBar {
     this.currentHealth = current;
     this.maxHealth = max;
     
+    if (this.isPlayerBar) {
+      console.log('[PLAYER HEALTHBAR] setHealth called, previous:', previousHealth, 'current:', current);
+    }
+    
     // Add visual feedback for health changes
     if (this.isPlayerBar && previousHealth !== current) {
       // Flash effect when health changes
       if (current < previousHealth) {
         // Damage taken - flash red
+        console.log('[PLAYER HEALTHBAR] Damage taken, flashing red. Container exists:', !!this.container, 'Bar exists:', !!this.bar);
         this.flashBar(0xff0000);
       } else if (current > previousHealth) {
         // Health gained - flash green
+        console.log('[HEALTHBAR] Health gained, flashing green');
         this.flashBar(0x00ff00);
       }
     }
     
     this.draw();
+    
+    // Force container visibility for player bars
+    if (this.isPlayerBar && this.container) {
+      this.container.setVisible(true);
+      console.log('[HEALTHBAR] Container visibility set to true');
+    }
   }
   
   private flashBar(color: number): void {
@@ -121,11 +205,18 @@ export class HealthBar {
   }
 
   public setVisible(visible: boolean): void {
+    if (this.isPlayerBar) {
+      console.log(`[PLAYER HEALTHBAR] setVisible(${visible}) called`);
+      console.log(`[PLAYER HEALTHBAR] Before: this.visible=${this.visible}, container.visible=${this.container?.visible}`);
+    }
     this.visible = visible;
     if (this.isPlayerBar && this.container) {
       this.container.setVisible(visible);
     } else {
       this.bar.setVisible(visible);
+    }
+    if (this.isPlayerBar) {
+      console.log(`[PLAYER HEALTHBAR] After: this.visible=${this.visible}, container.visible=${this.container?.visible}`);
     }
   }
 
@@ -160,13 +251,22 @@ export class HealthBar {
   }
 
   private draw(): void {
-    if (!this.visible) return;
-    
-    // Skip redraw if health hasn't changed
-    if (this.lastDrawnHealth === this.currentHealth && this.bar.scene) {
+    // Check visibility for both the HealthBar and its container
+    const isVisible = this.visible && (this.isPlayerBar ? this.container?.visible !== false : true);
+    if (!isVisible) {
+      console.log('[HEALTHBAR] Draw skipped - not visible, isPlayerBar:', this.isPlayerBar, 'this.visible:', this.visible, 'container.visible:', this.container?.visible);
       return;
     }
     
+    // Skip redraw if health hasn't changed
+    if (this.lastDrawnHealth === this.currentHealth && this.bar.scene) {
+      // Force redraw for debugging
+      // return;
+    }
+    
+    if (this.isPlayerBar) {
+      console.log('[PLAYER HEALTHBAR] Drawing health bar, Health:', this.currentHealth, '/', this.maxHealth);
+    }
     this.lastDrawnHealth = this.currentHealth;
 
     this.bar.clear();
@@ -179,11 +279,17 @@ export class HealthBar {
     if (this.isPlayerBar) {
       // Player bar draws at 0,0 within its container
       // Container handles the screen positioning
+      // Make sure the graphics object is visible
+      this.bar.setVisible(true);
     }
 
     // Background (dark red)
     this.bar.fillStyle(0x660000);
     this.bar.fillRect(drawX, drawY, this.width, this.height);
+    if (this.isPlayerBar) {
+      console.log('[PLAYER HEALTHBAR] Drawing background rect at', drawX, drawY, this.width, this.height);
+      console.log('[PLAYER HEALTHBAR] Container position:', this.container?.x, this.container?.y);
+    }
 
     // Health bar with color based on health percentage
     const healthWidth = (this.currentHealth / this.maxHealth) * this.width;
@@ -209,7 +315,9 @@ export class HealthBar {
     if (this.isPlayerBar) {
       // Create or update health text with "Thy Health:" prefix
       const healthText = `Thy Health: ${Math.ceil(this.currentHealth)}/${this.maxHealth}`;
+      console.log('[PLAYER HEALTHBAR] Health text should be:', healthText);
       if (!this.healthText) {
+        console.log('[PLAYER HEALTHBAR] Creating NEW health text');
         this.healthText = this.scene.add.text(0, -20, healthText, {
           fontSize: '14px',
           color: '#ffffff',
@@ -220,8 +328,10 @@ export class HealthBar {
         this.container?.add(this.healthText); // Add to container
         this.healthText.setDepth(101);
       } else {
+        console.log('[PLAYER HEALTHBAR] UPDATING existing health text to:', healthText);
         this.healthText.setText(healthText);
       }
+      console.log('[PLAYER HEALTHBAR] Text object text is now:', this.healthText?.text);
     }
   }
 
