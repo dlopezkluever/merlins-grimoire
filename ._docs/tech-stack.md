@@ -170,9 +170,12 @@
 
 1. **Database Schema** 🚀 *Planned (Supabase)*
    * **Players Table**: User profiles, statistics, preferences, authentication
+   **IGNORE**: 
    * **Game Sessions**: Multiplayer room state, match history, and statistics
    * **Leaderboards**: High scores, completion times, and achievement tracking
    * **Player Stats**: Detailed gameplay analytics and progression metrics
+   * ** END OF IGNORE**
+
 
 2. **Real-time Multiplayer Features** 🚀 *Planned (Socket.IO)*
    * **Live Player Synchronization**: Position, health, weapons, and actions (60fps updates)

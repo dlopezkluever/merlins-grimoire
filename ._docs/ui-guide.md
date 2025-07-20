@@ -5,7 +5,7 @@
 **Visual Style**: Early 2000s retro gaming aesthetic with magical wizard themes, reminiscent of 32-bit era games like Final Fantasy, Secret of Mana, and classic RPGs.
 
 **Color Palette**: 
-- **Primary**: Deep mystical purple (#4A148C, #6A1B9A)
+- **Primary**: Deep mystical purple (  #4A148C, #6A1B9A)
 - **Secondary**: Rich brown leather (#3E2723, #5D4037) 
 - **Accent**: Golden yellow (#FFB300, #FFC107)
 - **Magical Blue**: Ethereal cyan (#00BCD4, #0097A7)

@@ -24,6 +24,14 @@ export class MainScene extends Scene {
   protected gameOverText: Phaser.GameObjects.Text | null = null;
   protected restartText: Phaser.GameObjects.Text | null = null;
 
+  // Educational data
+  private chemistryLevel: string = '';
+  private subSubject: string = '';
+  private isMultiplayer: boolean = false;
+
+  // UI elements
+  private quitPopup: Phaser.GameObjects.Container | null = null;
+
   // Room system
   protected roomManager: RoomManager | null = null;
 
@@ -41,6 +49,13 @@ export class MainScene extends Scene {
   constructor(key: string = 'MainScene') {
     super({ key: key });
     this.pathfindingGrid = PathfindingGrid.getInstance();
+  }
+
+  init(data: { chemistryLevel?: string; subSubject?: string; isMultiplayer?: boolean }): void {
+    this.chemistryLevel = data.chemistryLevel || '';
+    this.subSubject = data.subSubject || '';
+    this.isMultiplayer = data.isMultiplayer || false;
+    console.log('Starting game with:', this.chemistryLevel, '-', this.subSubject, 'Multiplayer:', this.isMultiplayer);
   }
 
   // Asset loading
@@ -144,6 +159,11 @@ export class MainScene extends Scene {
         this.shutdown();
         this.scene.restart();
         this.gameOver = false;
+      });
+      
+      // Add Q key functionality for quit/restart popup
+      this.input.keyboard.on('keydown-Q', () => {
+        this.showQuitPopup();
       });
     }
   }
@@ -507,6 +527,121 @@ export class MainScene extends Scene {
     this.gameOver = true;
   }
 
+  // Show quit/restart popup
+  private showQuitPopup(): void {
+    // Don't show popup if one already exists or game is over
+    if (this.quitPopup || this.gameOver) {
+      return;
+    }
+
+    // Pause the game
+    this.physics.pause();
+    
+    // Get camera center position
+    const cameraCenterX = this.cameras.main.scrollX + this.cameras.main.width / 2;
+    const cameraCenterY = this.cameras.main.scrollY + this.cameras.main.height / 2;
+    
+    // Create popup container
+    this.quitPopup = this.add.container(cameraCenterX, cameraCenterY);
+    this.quitPopup.setDepth(200);
+    
+    // Create semi-transparent overlay
+    const overlay = this.add.rectangle(0, 0, this.cameras.main.width, this.cameras.main.height, 0x000000, 0.7);
+    overlay.setInteractive(); // Block clicks behind popup
+    
+    // Create popup background
+    const popupBg = this.add.rectangle(0, 0, 400, 250, 0x3E2723);
+    popupBg.setStrokeStyle(4, 0xFFB300);
+    
+    // Add title text
+    const titleText = this.add.text(0, -80, 'WHAT DOST THOU WISH?', {
+      fontFamily: 'Arial, sans-serif',
+      fontSize: '28px',
+      color: '#FFB300',
+      stroke: '#2A1A4A',
+      strokeThickness: 3
+    });
+    titleText.setOrigin(0.5);
+    
+    // Create button style function
+    const createButton = (x: number, y: number, text: string, callback: () => void) => {
+      const buttonContainer = this.add.container(x, y);
+      
+      const bg = this.add.rectangle(0, 0, 200, 50, 0x5D4037);
+      bg.setStrokeStyle(2, 0xFFB300);
+      bg.setInteractive({ useHandCursor: true });
+      
+      const buttonText = this.add.text(0, 0, text, {
+        fontFamily: 'Arial, sans-serif',
+        fontSize: '18px',
+        color: '#FFFFFF'
+      });
+      buttonText.setOrigin(0.5);
+      
+      buttonContainer.add([bg, buttonText]);
+      
+      // Hover effects
+      bg.on('pointerover', () => {
+        bg.setFillStyle(0x6D4C41);
+        bg.setScale(1.05);
+      });
+      
+      bg.on('pointerout', () => {
+        bg.setFillStyle(0x5D4037);
+        bg.setScale(1);
+      });
+      
+      bg.on('pointerdown', callback);
+      
+      return buttonContainer;
+    };
+    
+    // Create buttons
+    const restartButton = createButton(0, -20, 'RESTART GAME', () => {
+      this.closeQuitPopup();
+      this.shutdown();
+      this.scene.restart({ 
+        chemistryLevel: this.chemistryLevel, 
+        subSubject: this.subSubject,
+        isMultiplayer: this.isMultiplayer
+      });
+    });
+    
+    const mainMenuButton = createButton(0, 40, 'MAIN MENU', () => {
+      this.closeQuitPopup();
+      this.shutdown();
+      this.scene.start('MenuScene');
+    });
+    
+    const cancelButton = createButton(0, 100, 'CONTINUE', () => {
+      this.closeQuitPopup();
+    });
+    
+    // Add all elements to popup
+    this.quitPopup.add([
+      overlay,
+      popupBg,
+      titleText,
+      restartButton,
+      mainMenuButton,
+      cancelButton
+    ]);
+    
+    // Add ESC key to close popup
+    const escKey = this.input.keyboard?.addKey(Phaser.Input.Keyboard.KeyCodes.ESC);
+    escKey?.once('down', () => {
+      this.closeQuitPopup();
+    });
+  }
+  
+  private closeQuitPopup(): void {
+    if (this.quitPopup) {
+      this.quitPopup.destroy();
+      this.quitPopup = null;
+      this.physics.resume();
+    }
+  }
+
   // Handle treasure discovery victory
   public handleTreasureVictory(): void {
     if (this.gameOver) {
@@ -814,6 +949,10 @@ export class MainScene extends Scene {
     }
     if (this.restartText) {
       this.restartText.destroy();
+    }
+    if (this.quitPopup) {
+      this.quitPopup.destroy();
+      this.quitPopup = null;
     }
 
     // Clean up input
