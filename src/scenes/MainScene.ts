@@ -417,13 +417,25 @@ export class MainScene extends Scene {
   private handlePlayerDeath(): void {
     if (this.gameOver) return;
 
-    // Stop all movement
+    // PROPERLY stop all player movement and physics
     this.player.setVelocity(0, 0);
-
-    // Disable player controls
+    this.player.setAcceleration(0, 0);
     this.player.setActive(false);
-
-    // Get camera center position
+    
+    // Get the physics body and disable it completely
+    const body = this.player.body as Phaser.Physics.Arcade.Body;
+    if (body) {
+      body.setVelocity(0, 0);
+      body.setAcceleration(0, 0);
+      body.setDrag(1000); // High drag to stop any residual movement
+      body.setMaxVelocity(0); // Prevent any movement
+      body.setEnable(false); // Disable the physics body completely
+    }
+    
+    // STOP camera from following the player
+    this.cameras.main.stopFollow();
+    
+    // Get CURRENT camera center position (not player position)
     const cameraCenterX = this.cameras.main.scrollX + this.cameras.main.width / 2;
     const cameraCenterY = this.cameras.main.scrollY + this.cameras.main.height / 2;
     const cameraWidth = this.cameras.main.width;
@@ -477,9 +489,9 @@ export class MainScene extends Scene {
       buttonBg.setScale(1);
     });
 
-    // Create restart button text (15% smaller)
+    // Create restart button text (10% smaller)
     this.restartText = this.add.text(cameraCenterX, cameraCenterY + 25, 'RESTART THY JOURNEY', {
-      fontSize: '16px',
+      fontSize: '14px',
       color: '#FFC107',
       fontFamily: 'Alagard'
     }).setOrigin(0.5).setDepth(103);
@@ -501,13 +513,25 @@ export class MainScene extends Scene {
       return;
     }
 
-    // Stop all movement
+    // PROPERLY stop all player movement and physics
     this.player.setVelocity(0, 0);
-
-    // Disable player controls
+    this.player.setAcceleration(0, 0);
     this.player.setActive(false);
+    
+    // Get the physics body and disable it completely
+    const body = this.player.body as Phaser.Physics.Arcade.Body;
+    if (body) {
+      body.setVelocity(0, 0);
+      body.setAcceleration(0, 0);
+      body.setDrag(1000); // High drag to stop any residual movement
+      body.setMaxVelocity(0); // Prevent any movement
+      body.setEnable(false); // Disable the physics body completely
+    }
+    
+    // STOP camera from following the player
+    this.cameras.main.stopFollow();
 
-    // Get camera center position
+    // Get CURRENT camera center position (not player position)
     const cameraCenterX = this.cameras.main.scrollX + this.cameras.main.width / 2;
     const cameraCenterY = this.cameras.main.scrollY + this.cameras.main.height / 2;
     const cameraWidth = this.cameras.main.width;
@@ -589,13 +613,25 @@ export class MainScene extends Scene {
   private handleWin(): void {
     if (this.gameOver) return;
 
-    // Stop all movement
+    // PROPERLY stop all player movement and physics
     this.player.setVelocity(0, 0);
-
-    // Disable player controls
+    this.player.setAcceleration(0, 0);
     this.player.setActive(false);
+    
+    // Get the physics body and disable it completely
+    const body = this.player.body as Phaser.Physics.Arcade.Body;
+    if (body) {
+      body.setVelocity(0, 0);
+      body.setAcceleration(0, 0);
+      body.setDrag(1000); // High drag to stop any residual movement
+      body.setMaxVelocity(0); // Prevent any movement
+      body.setEnable(false); // Disable the physics body completely
+    }
+    
+    // STOP camera from following the player
+    this.cameras.main.stopFollow();
 
-    // Get camera center position
+    // Get CURRENT camera center position (not player position)
     const cameraCenterX = this.cameras.main.scrollX + this.cameras.main.width / 2;
     const cameraCenterY = this.cameras.main.scrollY + this.cameras.main.height / 2;
     const cameraWidth = this.cameras.main.width;

@@ -207,12 +207,13 @@ export class HealthBar {
     
     // Add health text for player bar
     if (this.isPlayerBar) {
-      // Create or update health text
-      const healthText = `${Math.ceil(this.currentHealth)}/${this.maxHealth}`;
+      // Create or update health text with "Thy Health:" prefix
+      const healthText = `Thy Health: ${Math.ceil(this.currentHealth)}/${this.maxHealth}`;
       if (!this.healthText) {
         this.healthText = this.scene.add.text(0, -20, healthText, {
           fontSize: '14px',
           color: '#ffffff',
+          fontFamily: 'Alagard',
           stroke: '#000000',
           strokeThickness: 2
         });

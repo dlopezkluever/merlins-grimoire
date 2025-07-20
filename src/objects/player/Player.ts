@@ -68,6 +68,9 @@ export class Player extends Physics.Arcade.Sprite {
     body.setMaxVelocity(500);
     body.setSize(32, 48); // Adjusted collision box for 64x64 sprite
     body.setOffset(16, 16); // Center the collision box
+    
+    // Ensure physics body is enabled (in case it was disabled from previous game)
+    body.setEnable(true);
   }
 
   private setupInput(scene: Scene): void {
@@ -203,6 +206,11 @@ export class Player extends Physics.Arcade.Sprite {
   preUpdate(time: number, delta: number) {
     super.preUpdate(time, delta);
 
+    // Don't process movement if player is inactive (dead/victory)
+    if (!this.active) {
+      return;
+    }
+
     const body = this.body as Physics.Arcade.Body;
     
     // Only reset velocity if no input is detected
@@ -230,8 +238,10 @@ export class Player extends Physics.Arcade.Sprite {
     
     // Player health bar is now fixed position - no need to update
 
-    // Handle auto-targeting
-    this.handleAutoTargeting();
+    // Handle auto-targeting (only if player is active)
+    if (this.active) {
+      this.handleAutoTargeting();
+    }
   }
 
   public getWand(): Wand {
