@@ -26,7 +26,7 @@ export class Treasure extends Physics.Arcade.Sprite {
     // Set up physics body
     if (this.body) {
       const body = this.body as Physics.Arcade.Body;
-      body.setSize(32, 32); // Adjust size as needed
+      body.setSize(48, 48); // Larger collision area for easier interaction
       body.setImmovable(true);
     }
     
@@ -37,6 +37,8 @@ export class Treasure extends Physics.Arcade.Sprite {
     // Set up collision with player
     if (this.player) {
       scene.physics.add.overlap(this, this.player, this.onPlayerTouch, undefined, this);
+    } else {
+      console.error('❌ No player reference provided to treasure!');
     }
   }
 
@@ -45,7 +47,6 @@ export class Treasure extends Physics.Arcade.Sprite {
       return; // Already opening or opened
     }
     
-    console.log('Player touched treasure!');
     this.startOpeningAnimation();
   }
 
@@ -79,102 +80,21 @@ export class Treasure extends Physics.Arcade.Sprite {
 
   private onAnimationComplete(): void {
     this.isOpened = true;
-    console.log('Treasure animation complete!');
     
     // Trigger victory
     this.triggerVictory();
   }
 
   private triggerVictory(): void {
-    // Disable player movement
-    if (this.player) {
-      this.player.setActive(false);
-      this.player.setVelocity(0, 0);
+    
+    // Trigger the scene's victory system instead of creating our own
+    const mainScene = this.scene as any;
+    if (mainScene.handleTreasureVictory) {
+      mainScene.handleTreasureVictory();
+    } else {
+      console.error('❌ MainScene.handleTreasureVictory method not found!');
     }
-
-    // Get camera center position for victory screen
-    const camera = this.scene.cameras.main;
-    const centerX = camera.scrollX + camera.width / 2;
-    const centerY = camera.scrollY + camera.height / 2;
-
-    // Create victory overlay
-    const overlay = this.scene.add.rectangle(centerX, centerY, camera.width, camera.height, 0x263238, 0.85);
-    overlay.setOrigin(0.5);
-    overlay.setDepth(1000);
-    overlay.setScrollFactor(0); // Fixed to camera
-
-    // Create ornate border frame for the victory message (50% smaller)
-    const frameWidth = 350;
-    const frameHeight = 200;
-    const frame = this.scene.add.rectangle(centerX, centerY, frameWidth, frameHeight, 0x3E2723);
-    frame.setStrokeStyle(4, 0xFFB300); // Golden border (proportionally smaller)
-    frame.setOrigin(0.5);
-    frame.setDepth(1001);
-    frame.setScrollFactor(0);
-
-    // Create victory text (smaller)
-    const victoryText = this.scene.add.text(centerX, centerY - 40, 'TREASURE DISCOVERED!', {
-      fontSize: '28px',
-      color: '#FFB300', // Gold color
-      fontFamily: 'Alagard',
-      stroke: '#2A1A4A',
-      strokeThickness: 2,
-      shadow: {
-        offsetX: 1,
-        offsetY: 1,
-        color: '#2A1A4A',
-        blur: 1,
-        stroke: true,
-        fill: true
-      }
-    });
-    victoryText.setOrigin(0.5);
-    victoryText.setDepth(1002);
-    victoryText.setScrollFactor(0); // Fixed to camera
-
-    // Create subtitle text (smaller)
-    const subtitleText = this.scene.add.text(centerX, centerY - 5, 'Thy magical quest is complete!', {
-      fontSize: '14px',
-      color: '#E0E0E0',
-      fontFamily: 'Alagard'
-    });
-    subtitleText.setOrigin(0.5);
-    subtitleText.setDepth(1002);
-    subtitleText.setScrollFactor(0); // Fixed to camera
-
-    // Create play again button with medieval styling (smaller)
-    const buttonBg = this.scene.add.rectangle(centerX, centerY + 30, 160, 40, 0x5D4037);
-    buttonBg.setStrokeStyle(2, 0xFFB300);
-    buttonBg.setOrigin(0.5);
-    buttonBg.setDepth(1002);
-    buttonBg.setScrollFactor(0);
-    buttonBg.setInteractive({ useHandCursor: true });
-
-    const buttonText = this.scene.add.text(centerX, centerY + 30, 'BEGIN NEW QUEST', {
-      fontSize: '16px',
-      color: '#FFC107',
-      fontFamily: 'Alagard'
-    });
-    buttonText.setOrigin(0.5);
-    buttonText.setDepth(1003);
-    buttonText.setScrollFactor(0);
-
-    // Add button hover effects
-    buttonBg.on('pointerover', () => {
-      buttonBg.setFillStyle(0x6D4C41);
-      buttonBg.setScale(1.05);
-    });
-
-    buttonBg.on('pointerout', () => {
-      buttonBg.setFillStyle(0x5D4037);
-      buttonBg.setScale(1);
-    });
-
-    // Add restart functionality
-    buttonBg.on('pointerdown', () => {
-      this.scene.scene.restart();
-    });
-
+    
     // Add some sparkle effects around the treasure
     this.addSparkleEffects();
   }

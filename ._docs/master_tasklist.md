@@ -65,7 +65,7 @@ This phase focuses on establishing the Supabase backend, setting up the Socket.I
         * [ ] Create policies for `chemistry_problems` and `leaderboards` (e.g., read-only for all authenticated users).
     * [ ] **Implement Supabase Edge Functions (Optional for MVP, but good for future):**
         * [ ] Plan for `validate-chemistry-answer`, `update-chemistry-strength`, `generate-chemistry-problem`, `calculate-game-score` functions. (Note: Actual implementation might be client-side for MVP if simpler).
-* **1.2 Socket.IO Server Setup (Node.js):** *
+* **IGNORE FOR NOW** **1.2 Socket.IO Server Setup (Node.js):** **IGNORE FOR NOW**
     * [ ] **Create a New Node.js Project for the Server:** Initialize a new npm project in a separate directory (e.g., `server/`).
     * [ ] **Install Dependencies:** `npm install express socket.io`
     * [ ] **Set Up Basic Express Server:** Create `server/index.js` to serve static files (if needed) and listen for connections.
@@ -78,7 +78,7 @@ This phase focuses on establishing the Supabase backend, setting up the Socket.I
         * [ ] `playerAction`: Receive actions (e.g., spell cast) and broadcast.
     * [ ] **Implement Room Management:** Set up basic logic for players to join/leave game rooms.
     * [ ] **Deploy Server (Planned):** Consider deployment options (Railway/Heroku/etc.) for the Node.js server.
-* **1.3 Player Character (Merlin) Adaptation & Multiplayer Integration:**
+***IGNORE FOR NOW** **1.3 Player Character (Merlin) Adaptation & Multiplayer Integration:**
     * [ ] **Retain Core Movement:** Confirm WASD 8-directional movement at 200 pixels/second base speed is fully functional.
     * [ ] **Synchronize Player Movement:**
         * [ ] Send Merlin's position and animation state to the Socket.IO server on update.
@@ -87,14 +87,14 @@ This phase focuses on establishing the Supabase backend, setting up the Socket.I
     * [ ] **Update Merlin's Visuals:**
         * [ ] Acquire/create new pixel art sprites for Merlin (64x64 sprite frames) including idle, running, casting, damage, and death animations.
         * [ ] Integrate these new sprites into the Phaser game.
-* **1.4 Enemy System Adaptation & Multiplayer Integration:**
+* **IGNORE FOR NOW** **1.4 Enemy System Adaptation & Multiplayer Integration:**
     * [ ] **Confirm Existing Enemy Integration:** Verify that the six distinct enemy types (Zombie, Skeleton, Ninja, Chomper, Troll, Slug) from the base game are correctly loaded and their core mechanics (health, speed, damage, AI behaviors like pathfinding, target acquisition, smart movement, attack patterns) are retained.
     * [ ] **Synchronize Enemy State:**
         * [ ] Determine server-authoritative or client-side prediction for enemy positions and health.
         * [ ] Send/receive enemy health updates and defeat events via Socket.IO.
     * [ ] **Update Enemy Visuals:** Acquire/create new pixel art sprites for each enemy type to align with the new theme and branding.
     * [ ] **Adjust Enemy Spawning:** Ensure enemy spawning aligns with the room-based difficulty scaling and enemy variety described in the base game guide, and is synchronized across clients.
-* **1.5 Map and Environment Adaptation:**
+***IGNORE FOR NOW** **1.5 Map and Environment Adaptation:**
     * [ ] **Confirm Procedural Dungeon Generation:** Verify the 3x3 procedural dungeon generation, room connections, and door mechanics are fully functional.
     * [ ] **Synchronize Map State:** Ensure all connected players see the same dungeon layout and door states.
     * [ ] **Update Environmental Assets:**

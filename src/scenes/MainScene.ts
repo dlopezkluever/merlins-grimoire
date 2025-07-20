@@ -495,6 +495,97 @@ export class MainScene extends Scene {
     this.gameOver = true;
   }
 
+  // Handle treasure discovery victory
+  public handleTreasureVictory(): void {
+    if (this.gameOver) {
+      return;
+    }
+
+    // Stop all movement
+    this.player.setVelocity(0, 0);
+
+    // Disable player controls
+    this.player.setActive(false);
+
+    // Get camera center position
+    const cameraCenterX = this.cameras.main.scrollX + this.cameras.main.width / 2;
+    const cameraCenterY = this.cameras.main.scrollY + this.cameras.main.height / 2;
+    const cameraWidth = this.cameras.main.width;
+    const cameraHeight = this.cameras.main.height;
+
+    // Create semi-transparent dark overlay
+    const overlay = this.add.rectangle(cameraCenterX, cameraCenterY, cameraWidth, cameraHeight, 0x263238, 0.85);
+    overlay.setOrigin(0.5);
+    overlay.setDepth(100); // Ensure it's above other elements
+
+    // Create ornate border frame for the victory message (larger for subtitle)
+    const frameWidth = 350;
+    const frameHeight = 200;
+    const frame = this.add.rectangle(cameraCenterX, cameraCenterY, frameWidth, frameHeight, 0x3E2723);
+    frame.setStrokeStyle(4, 0xFFB300); // Golden border
+    frame.setOrigin(0.5);
+    frame.setDepth(101);
+
+    // Show victory text at the center of the screen
+    this.gameOverText = this.add.text(cameraCenterX, cameraCenterY - 40, 'TREASURE DISCOVERED!', {
+      fontSize: '28px',
+      color: '#FFB300',
+      fontFamily: 'Alagard',
+      stroke: '#2A1A4A',
+      strokeThickness: 2,
+      shadow: {
+        offsetX: 1,
+        offsetY: 1,
+        color: '#2A1A4A',
+        blur: 1,
+        stroke: true,
+        fill: true
+      }
+    }).setOrigin(0.5).setDepth(102);
+
+    // Add the requested subtitle
+    const subtitleText = this.add.text(cameraCenterX, cameraCenterY - 5, 'Pleased with Thou, King Arthur Shalt be!', {
+      fontSize: '16px',
+      color: '#E0E0E0',
+      fontFamily: 'Alagard'
+    }).setOrigin(0.5).setDepth(102);
+
+    // Create restart button with medieval styling
+    const buttonBg = this.add.rectangle(cameraCenterX, cameraCenterY + 40, 180, 40, 0x5D4037);
+    buttonBg.setStrokeStyle(2, 0xFFB300);
+    buttonBg.setOrigin(0.5);
+    buttonBg.setDepth(102);
+    buttonBg.setInteractive({ useHandCursor: true });
+
+    // Add button hover effects
+    buttonBg.on('pointerover', () => {
+      buttonBg.setFillStyle(0x6D4C41);
+      buttonBg.setScale(1.05);
+    });
+
+    buttonBg.on('pointerout', () => {
+      buttonBg.setFillStyle(0x5D4037);
+      buttonBg.setScale(1);
+    });
+
+    // Create restart button text
+    this.restartText = this.add.text(cameraCenterX, cameraCenterY + 40, 'BEGIN NEW QUEST', {
+      fontSize: '16px',
+      color: '#FFC107',
+      fontFamily: 'Alagard'
+    }).setOrigin(0.5).setDepth(103);
+
+    // Add click handler
+    buttonBg.on('pointerdown', () => {
+      this.shutdown();
+      this.scene.restart();
+      this.gameOver = false;
+    });
+
+    // Set game over flag to stop all game updates
+    this.gameOver = true;
+  }
+
   private handleWin(): void {
     if (this.gameOver) return;
 
