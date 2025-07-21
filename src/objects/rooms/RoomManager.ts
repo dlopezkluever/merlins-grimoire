@@ -5,47 +5,16 @@ import { Room } from "./Room";
 import { Player } from "../player/Player";
 import { MazeData, MazeRoom } from "../maze/MazeGenerator";
 
-const DEBUG_ROOMS = false; // Reduced to prevent log spam
-
-function debugLog(message: string, ...args: any[]) {
-  if (DEBUG_ROOMS) {
-    console.log(`[ROOM DEBUG] ${message}`, ...args);
-  }
-}
-
 export class RoomManager {
   private scene: Scene;
   private rooms: Map<string, Room>;
   private currentRoom: Room | null = null;
   private player: Player;
-  private players: Player[] = [];
 
   constructor(scene: Scene, player: Player) {
     this.scene = scene;
     this.player = player;
-    this.players = [player];
-    debugLog('RoomManager created with player:', player.constructor.name);
     this.rooms = new Map();
-
-  }
-
-  public addPlayer(player: Player): void {
-    // Check if player is already added to avoid duplicates
-    if (this.players.includes(player)) {
-      debugLog('Player already in room manager, skipping');
-      return;
-    }
-    
-    this.players.push(player);
-    debugLog('Adding player to room manager:', player.constructor.name, 'Total players:', this.players.length);
-    // Set up room overlaps for the new player
-    this.rooms.forEach(room => {
-      debugLog('Setting up room overlap for new player in room:', room.getId());
-      this.scene.physics.add.overlap(player, room.getZone(), () => {
-        debugLog('Player entered room via addPlayer overlap:', player.constructor.name);
-        this.handleRoomEntry(room);
-      });
-    });
   }
 
   public initializeRooms(roomLayer: Phaser.Tilemaps.ObjectLayer): void {
@@ -87,13 +56,9 @@ export class RoomManager {
       const room = this.createFromMazeData(roomData);
       if (room) {
         this.rooms.set(roomData.id, room);
-        // Set up overlaps for all players
-        this.players.forEach(player => {
-          debugLog('Setting up room overlap for player:', player.constructor.name, 'in room:', roomData.id);
-          this.scene.physics.add.overlap(player, room.getZone(), () => {
-            debugLog('Player entered room via maze data overlap:', player.constructor.name, 'Room:', roomData.id);
-            this.handleRoomEntry(room);
-          });
+        // Set up overlap for player
+        this.scene.physics.add.overlap(this.player, room.getZone(), () => {
+          this.handleRoomEntry(room);
         });
       }
     });
@@ -220,20 +185,8 @@ export class RoomManager {
   
   private handleRoomEntry(room: Room) {
     // Debounce room entry logs to reduce spam
-    const now = Date.now();
-    const shouldLog = now - this.lastRoomChange > 1000; // Only log room changes every 1 second
-    
-    if (shouldLog) {
-      debugLog('handleRoomEntry called for room:', room.getId(), 'Current room:', this.currentRoom?.getId());
-    }
-    
     if (this.currentRoom === room) {
-      return; // Already in this room, no need to log
-    }
-    
-    if (shouldLog) {
-      debugLog('Switching to new room:', room.getId(), 'from:', this.currentRoom?.getId());
-      this.lastRoomChange = now;
+      return; // Already in this room
     }
     
     this.currentRoom = room;

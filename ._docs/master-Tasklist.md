@@ -47,19 +47,19 @@ This tasklist outlines the development process for the simplified version of "Me
 * [ ] **Implement Merlin's Study Scene (Pre-Game):**
     * [ ] Design study guide UI with medieval theme
     * [ ] Load content based on selected sub-subject from local JSON
-    * [ ] Add 3-second auto-skip timer
+    * [ ] Add 3-second auto-skip timer **REMOVE THIS**
     * [ ] Add "Skip" button
     * [ ] Pass all game configuration data to MainScene
     * [ ] Transition to MainScene (Game)
 
-### **1.2 Player Controls & Movement**
+### **Consider This Done for Now** **1.2 Player Controls & Movement**
 * [ ] **Adapt Single Player Controls:**
     * [ ] Confirm WASD/Arrow keys for movement
     * [ ] Implement P key for potion crafting
     * [ ] Implement M key for Merlin's Study access
     * [ ] Add Q key to quit to main menu
 
-* [ ] **Implement Local 2-Player Support:**
+* [ ] **Consider This Done for Now**  **Implement Local 2-Player Support:**
     * [ ] Player 1: Arrow keys movement, P for potions, M for study
     * [ ] Player 2: WASD movement, T for potions, R for study
     * [ ] Handle simultaneous input from both players

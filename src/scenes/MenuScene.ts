@@ -3,7 +3,6 @@ import Phaser from 'phaser';
 export class MenuScene extends Phaser.Scene {
   private selectedButtonIndex: number = 0;
   private buttons: Phaser.GameObjects.Container[] = [];
-  private isMultiplayer: boolean = false;
 
   constructor() {
     super({ key: 'MenuScene' });
@@ -266,16 +265,14 @@ export class MenuScene extends Phaser.Scene {
   }
 
   private startSoloGame(): void {
-    this.isMultiplayer = false;
     sessionStorage.setItem('isMultiplayer', 'false');
     this.scene.start('ChemistryLevelSelectScene');
   }
 
   private startMultiplayerGame(): void {
-    this.isMultiplayer = true;
     sessionStorage.setItem('isMultiplayer', 'true');
     
-    // Canvas will be resized when entering MainScene
+    // Canvas will be resized when entering MultiplayerScene
     this.scene.start('ChemistryLevelSelectScene');
   }
 

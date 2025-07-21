@@ -10,25 +10,14 @@ import { WandUpgrade } from '../wands/WandUpgrade';
 import { WandManager } from '../wands/WandManager';
 import { EnemySpawner } from './EnemySpawner';
 
-const DEBUG_ENEMY_MANAGER = false; // Reduced to prevent log spam
-
-function debugLog(message: string, ...args: any[]) {
-  if (DEBUG_ENEMY_MANAGER) {
-    console.log(`[ENEMY MANAGER DEBUG] ${message}`, ...args);
-  }
-}
-
 export class EnemyManager {
   private scene: Scene;
   private enemies: Phaser.Physics.Arcade.Group;
   private player: Player;
-  private players: Player[] = [];
 
   constructor(scene: Scene, player: Player) {
     this.scene = scene;
     this.player = player;
-    this.players = [player];
-    debugLog('EnemyManager created with player:', player.constructor.name);
     
     this.enemies = this.scene.physics.add.group({
       classType: Enemy,
@@ -48,20 +37,7 @@ export class EnemyManager {
     });
   }
 
-  public addPlayer(player: Player): void {
-    this.players.push(player);
-    debugLog('Adding player to enemy manager:', player.constructor.name, 'Total players:', this.players.length);
-    
-    // Setup overlap for the new player
-    this.scene.physics.add.overlap(
-      this.enemies,
-      player,
-      this.handlePlayerEnemyOverlap,
-      undefined,
-      this
-    );
-    debugLog('Enemy overlap set up for new player');
-  }
+
 
   public createEnemiesFromSpawnLayer(spawnLayer: Phaser.Tilemaps.ObjectLayer, rooms: Map<string, Room>): void {
     // Find all enemy spawn points in the spawn layer
@@ -211,10 +187,8 @@ export class EnemyManager {
     const wallsLayer = (this.scene as MainScene).getWallsLayer();
 
     if (enemyInstance instanceof RangedEnemy && enemyInstance.wand && enemyInstance.wand.spells) {
-      // Enemy Spells vs All Players
-      this.players.forEach(player => {
-        this.scene.physics.add.collider(player, enemyInstance.wand.spells, this.handlePlayerSpellCollision, undefined, this);
-      });
+      // Enemy Spells vs Player
+      this.scene.physics.add.collider(this.player, enemyInstance.wand.spells, this.handlePlayerSpellCollision, undefined, this);
       
       // Enemy Spells vs Walls
       if (wallsLayer) {
@@ -258,14 +232,10 @@ export class EnemyManager {
   private handlePlayerEnemyOverlap = (obj1: any, obj2: any): void => {
     const enemy = obj1 as Enemy;
     const player = obj2 as Player;
-    debugLog('Player-Enemy overlap detected:', player.constructor.name, 'vs', enemy.constructor.name);
     
     // Check if enemy is active using the active property
     if (enemy.active) {
-      debugLog('Enemy is active, applying damage to player');
       player.takeDamage(10, 'enemy_contact');
-    } else {
-      debugLog('Enemy is not active, skipping damage');
     }
   };
 
@@ -287,24 +257,7 @@ export class EnemyManager {
   }
 
   public getClosestPlayer(enemyX: number, enemyY: number): Player | null {
-    if (this.players.length === 0) return null;
-    
-    let closestPlayer = this.players[0];
-    let closestDistance = Phaser.Math.Distance.Between(enemyX, enemyY, closestPlayer.x, closestPlayer.y);
-    
-    debugLog('Finding closest player to enemy at:', enemyX, enemyY);
-    
-    for (let i = 1; i < this.players.length; i++) {
-      const distance = Phaser.Math.Distance.Between(enemyX, enemyY, this.players[i].x, this.players[i].y);
-      debugLog(`Distance to Player ${i + 1}:`, distance);
-      
-      if (distance < closestDistance) {
-        closestDistance = distance;
-        closestPlayer = this.players[i];
-      }
-    }
-    
-    debugLog('Closest player:', closestPlayer.constructor.name, 'at distance:', closestDistance);
-    return closestPlayer;
+    // Single player mode - just return the player
+    return this.player;
   }
 } 

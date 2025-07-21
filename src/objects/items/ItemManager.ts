@@ -10,8 +10,7 @@ export class ItemManager {
   private scene: Scene;
   private potions: Phaser.Physics.Arcade.Group;
   private powerups: Phaser.Physics.Arcade.Group;
-  private player: Player | null = null;
-  private players: Player[] = [];
+  private player: Player;
   private maxPotions: number = 3;
   private maxPowerups: number = 2;
   private roomsToSpawnItems: { [key: string]: ItemType[] } = {
@@ -25,7 +24,6 @@ export class ItemManager {
   constructor(scene: Scene, player: Player) {
     this.scene = scene;
     this.player = player;
-    this.players = [player];
 
     // Create potions group
     this.potions = scene.physics.add.group({
@@ -52,34 +50,7 @@ export class ItemManager {
     });
   }
 
-  public addPlayer(player: Player): void {
-    this.players.push(player);
-    
-    // Setup collisions for the new player
-    this.scene.physics.add.overlap(
-      player,
-      this.potions,
-      (playerObj: any, potionObj: any) => {
-        const potion = potionObj as HealthPotion;
-        const playerInstance = playerObj as Player;
-        if (!potion.isItemCollected()) {
-          potion.collect(playerInstance);
-        }
-      }
-    );
 
-    this.scene.physics.add.overlap(
-      player,
-      this.powerups,
-      (playerObj: any, powerupObj: any) => {
-        const powerup = powerupObj as SparkBoost;
-        const playerInstance = playerObj as Player;
-        if (!powerup.isItemCollected()) {
-          powerup.collect(playerInstance);
-        }
-      }
-    );
-  }
 
   public createItemsFromItemsLayer(itemsLayer: Phaser.Tilemaps.ObjectLayer): void {
     itemsLayer.objects.filter(item => item.name === 'Potion').forEach(item => {

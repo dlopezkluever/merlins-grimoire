@@ -8,8 +8,7 @@ import { Wand } from "./Wand";
 import { Room } from "../rooms/Room";
 
 export class WandManager {
-  private player: Player | null = null;
-  private players: Player[] = [];
+  private player: Player;
   private scene: Scene;
   private wandUpgrades: WandUpgrade[] = [];
   public static readonly SWAPPED_EVENT = 'wand-swapped';
@@ -17,22 +16,9 @@ export class WandManager {
   constructor(scene: Scene, player: Player) {
     this.scene = scene;
     this.player = player;
-    this.players = [player];
   }
 
-  public addPlayer(player: Player): void {
-    this.players.push(player);
-    // Set up collision for existing wand upgrades
-    this.wandUpgrades.forEach(upgrade => {
-      this.scene.physics.add.overlap(
-        player,
-        upgrade,
-        this.onEnterUpgradeArea,
-        undefined,
-        this
-      );
-    });
-  }
+
 
   public setupWandUpgrades(itemsLayer: Phaser.Tilemaps.ObjectLayer): void {
     itemsLayer.objects.forEach((item) => {

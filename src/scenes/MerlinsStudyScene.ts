@@ -263,13 +263,15 @@ export class MerlinsStudyScene extends Phaser.Scene {
   }
 
   private startGame(): void {
-    // Pass all accumulated data to MainScene
+    // Pass all accumulated data to appropriate scene
     const isMultiplayer = sessionStorage.getItem('isMultiplayer') === 'true';
     
-    this.scene.start('MainScene', {
+    // Choose the appropriate scene based on multiplayer flag
+    const sceneKey = isMultiplayer ? 'MultiplayerScene' : 'MainScene';
+    
+    this.scene.start(sceneKey, {
       chemistryLevel: this.chemistryLevel,
-      subSubject: this.subSubject,
-      isMultiplayer: isMultiplayer
+      subSubject: this.subSubject
     });
   }
 } 
