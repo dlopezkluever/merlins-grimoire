@@ -8,9 +8,12 @@ export class Treasure extends Physics.Arcade.Sprite {
   private animationFrames: string[] = [];
   private currentFrame: number = 0;
   private animationSpeed: number = 150; // milliseconds between frames
+  private playerId: number = 1;
 
-  constructor(scene: Scene, x: number, y: number, player: Player) {
+  constructor(scene: Scene, x: number, y: number, player: Player, playerId: number = 1) {
     super(scene, x, y, 'treasure-layer-1');
+    
+    this.playerId = playerId;
     
     this.player = player;
     
@@ -87,12 +90,18 @@ export class Treasure extends Physics.Arcade.Sprite {
 
   private triggerVictory(): void {
     
-    // Trigger the scene's victory system instead of creating our own
+    // Check if this is a multiplayer scene
     const mainScene = this.scene as any;
-    if (mainScene.handleTreasureVictory) {
-      mainScene.handleTreasureVictory();
+    if (mainScene.isMultiplayer) {
+      // Emit treasure collected event with player ID for multiplayer
+      this.scene.events.emit('treasureCollected', this.playerId);
     } else {
-      console.error('❌ MainScene.handleTreasureVictory method not found!');
+      // Trigger the scene's victory system for single player
+      if (mainScene.handleTreasureVictory) {
+        mainScene.handleTreasureVictory();
+      } else {
+        console.error('❌ MainScene.handleTreasureVictory method not found!');
+      }
     }
     
     // Add some sparkle effects around the treasure

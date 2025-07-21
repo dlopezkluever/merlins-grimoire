@@ -40,10 +40,12 @@ export class Player extends Physics.Arcade.Sprite {
   private touchPosition: { x: number; y: number } | null = null;
   private cursors: Phaser.Types.Input.Keyboard.CursorKeys | null = null;
   private keys: { [key: string]: Phaser.Input.Keyboard.Key } | null = null;
+  private playerId: number = 1; // Default to player 1
 
-  constructor(scene: Scene, x: number, y: number) {
+  constructor(scene: Scene, x: number, y: number, playerId: number = 1) {
     super(scene, x, y, 'merlin-idle');
 
+    this.playerId = playerId;
     this.setupPhysics(scene);
     this.setupInput(scene);
     this.setupWands(scene);
@@ -74,14 +76,26 @@ export class Player extends Physics.Arcade.Sprite {
   }
 
   private setupInput(scene: Scene): void {
-    // Set up WASD keys
-    this.cursors = scene.input.keyboard.createCursorKeys();
-    this.keys = {
-      up: scene.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.W),
-      down: scene.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.S),
-      left: scene.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.A),
-      right: scene.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.D)
-    };
+    if (this.playerId === 1) {
+      // Player 1 uses arrow keys
+      this.cursors = scene.input.keyboard.createCursorKeys();
+      this.keys = {
+        up: this.cursors.up,
+        down: this.cursors.down,
+        left: this.cursors.left,
+        right: this.cursors.right
+      };
+    } else {
+      // Player 2 uses WASD keys
+      this.keys = {
+        up: scene.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.W),
+        down: scene.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.S),
+        left: scene.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.A),
+        right: scene.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.D)
+      };
+      // Create dummy cursor keys for compatibility
+      this.cursors = scene.input.keyboard.createCursorKeys();
+    }
 
     // Set up touch input
     scene.input.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
@@ -394,8 +408,12 @@ export class Player extends Physics.Arcade.Sprite {
     // Hide health bar
     this.healthBar.setVisible(false);
 
-    // Emit an event that the scene can listen for
-    this.scene.events.emit('playerDied');
+    // Emit different events based on player ID
+    if (this.playerId === 2) {
+      this.scene.events.emit('player2Died', this);
+    } else {
+      this.scene.events.emit('playerDied', this);
+    }
   }
 
   // Method to check if player is dead
@@ -406,6 +424,34 @@ export class Player extends Physics.Arcade.Sprite {
   // Method to get current health
   public getHealth(): number {
     return this.currentHealth;
+  }
+
+  // Method to reset health to full
+  public resetHealth(): void {
+    this.currentHealth = this.maxHealth;
+    this.healthBar.setHealth(this.currentHealth, this.maxHealth);
+    this.healthBar.setVisible(true);
+  }
+
+  // Method to reset wand to base state
+  public resetWand(): void {
+    this.wand = WandFactory.createPlayerWand(this.scene, 'STRIKE');
+    this.wandOverlay.updateWand(this.wand);
+  }
+
+  // Method to clear inventory
+  public clearInventory(): void {
+    // Clear any speed boost effects
+    if (this.speedBoostTimer) {
+      this.speedBoostTimer.destroy();
+      this.speedBoostTimer = null;
+    }
+    if (this.speedBoostTrail) {
+      this.speedBoostTrail.destroy();
+      this.speedBoostTrail = null;
+    }
+    this.isSpeedBoosted = false;
+    this.moveSpeed = 200; // Reset to base speed
   }
 
   // Method to get max health

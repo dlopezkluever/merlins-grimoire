@@ -254,6 +254,12 @@ JSON files based on the selected subject.`;
     // Pass all accumulated data to MainScene
     const isMultiplayer = sessionStorage.getItem('isMultiplayer') === 'true';
     
+    console.log('MerlinsStudyScene: Starting MainScene with data:', {
+      chemistryLevel: this.chemistryLevel,
+      subSubject: this.subSubject,
+      isMultiplayer: isMultiplayer
+    });
+    
     this.scene.start('MainScene', {
       chemistryLevel: this.chemistryLevel,
       subSubject: this.subSubject,

@@ -16,7 +16,9 @@ import { Treasure } from '../objects/items/Treasure';
 export class MainScene extends Scene {
   // Core game objects
   protected player: Player | null = null;
+  protected player2: Player | null = null; // Second player for multiplayer
   protected wallsLayer: Phaser.Tilemaps.TilemapLayer | null = null;
+  protected wallsLayer2: Phaser.Tilemaps.TilemapLayer | null = null; // Second walls layer for player 2
   protected mousePointer: Phaser.Input.Pointer | null = null;
 
   // Game state
@@ -34,17 +36,39 @@ export class MainScene extends Scene {
 
   // Room system
   protected roomManager: RoomManager | null = null;
+  protected roomManager2: RoomManager | null = null; // Second room manager for player 2
 
   // Managers and utilities
   protected pathfindingGrid: PathfindingGrid;
+  protected pathfindingGrid2: PathfindingGrid | null = null; // Second pathfinding grid for player 2
   protected barrelManager: BarrelManager | null = null;
+  protected barrelManager2: BarrelManager | null = null; // Second barrel manager for player 2
   protected enemyManager: EnemyManager | null = null;
+  protected enemyManager2: EnemyManager | null = null; // Second enemy manager for player 2
   protected itemManager: ItemManager | null = null;
+  protected itemManager2: ItemManager | null = null; // Second item manager for player 2
   protected wandManager: WandManager | null = null;
+  protected wandManager2: WandManager | null = null; // Second wand manager for player 2
   protected movementManager: MovementManager | null = null;
+  protected movementManager2: MovementManager | null = null; // Second movement manager for player 2
   // MiniMap removed - no longer needed
   private mazeData!: MazeData;
+  private mazeData2!: MazeData; // Second maze for player 2
   private treasure: Treasure | null = null;
+  private treasure2: Treasure | null = null; // Second treasure for player 2
+
+  // Split-screen cameras
+  private camera1: Phaser.Cameras.Scene2D.Camera | null = null;
+  private camera2: Phaser.Cameras.Scene2D.Camera | null = null;
+
+  // World containers for separation
+  private world1Container: Phaser.GameObjects.Container | null = null;
+  private world2Container: Phaser.GameObjects.Container | null = null;
+
+  // Multiplayer state
+  private player1Won: boolean = false;
+  private player2Won: boolean = false;
+  private multiplayerGameOver: boolean = false;
 
   constructor(key: string = 'MainScene') {
     super({ key: key });
@@ -111,31 +135,52 @@ export class MainScene extends Scene {
   // Scene initialization
   create() {
 
-    console.log('Game started!');
+    console.log('Game started!', 'Multiplayer:', this.isMultiplayer);
+    console.log('Canvas current size:', this.scale.width, 'x', this.scale.height);
 
-    this.setupInput();
-    this.setupMap();
-    this.setupPlayer();
-    this.setupRooms();        // Moved before setupWeaponManager
-    this.setupTreasure();     // Place treasure in goal room
-    this.setupEnemies();      // Moved here to initialize before player update
-    this.setupWandManager();
-    this.setupCamera();
-    
-    // Force health bar repositioning after camera zoom is applied
-    if (this.player) {
-      const healthBar = (this.player as any).healthBar;
-      if (healthBar && healthBar.forceReposition) {
-        healthBar.forceReposition();
+    // Resize canvas for multiplayer
+    if (this.isMultiplayer) {
+      console.log('MULTIPLAYER MODE: Resizing canvas to 1600x600');
+      console.log('Before resize - Canvas:', this.scale.canvas.width, 'x', this.scale.canvas.height);
+      console.log('Before resize - Scale:', this.scale.width, 'x', this.scale.height);
+      
+      this.scale.resize(1600, 600);
+      
+      console.log('After resize - Canvas:', this.scale.canvas.width, 'x', this.scale.canvas.height);
+      console.log('After resize - Scale:', this.scale.width, 'x', this.scale.height);
+      
+      // Force a refresh
+      this.scale.refresh();
+      
+      console.log('After refresh - Canvas:', this.scale.canvas.width, 'x', this.scale.canvas.height);
+      console.log('After refresh - Scale:', this.scale.width, 'x', this.scale.height);
+      
+      this.setupMultiplayerWorlds();
+    } else {
+      this.setupInput();
+      this.setupMap();
+      this.setupPlayer();
+      this.setupRooms();        // Moved before setupWeaponManager
+      this.setupTreasure();     // Place treasure in goal room
+      this.setupEnemies();      // Moved here to initialize before player update
+      this.setupWandManager();
+      this.setupCamera();
+      
+      // Force health bar repositioning after camera zoom is applied
+      if (this.player) {
+        const healthBar = (this.player as any).healthBar;
+        if (healthBar && healthBar.forceReposition) {
+          healthBar.forceReposition();
+        }
       }
+      
+      this.setupPhysics();
+      this.setupPathfinding();
+      this.setupBarrels();
+      this.setupPotions();
+      this.setupCollisions();
+      // MiniMap removed - no longer needed
     }
-    
-    this.setupPhysics();
-    this.setupPathfinding();
-    this.setupBarrels();
-    this.setupPotions();
-    this.setupCollisions();
-    // MiniMap removed - no longer needed
     
     // Enable debug visualization
     // this.physics.world.createDebugGraphic();
@@ -267,9 +312,19 @@ export class MainScene extends Scene {
     const spawnX = (startRoom.x + startRoom.width / 2) * tileSize;
     const spawnY = (startRoom.y + startRoom.height / 2) * tileSize;
     
-    console.log('Spawning player at:', spawnX, spawnY, 'in room:', startRoom.id);
+    console.log('Spawning player 1 at:', spawnX, spawnY, 'in room:', startRoom.id);
     
-    this.player = new Player(this, spawnX, spawnY);
+    this.player = new Player(this, spawnX, spawnY, 1);
+    
+    if (this.isMultiplayer) {
+      // Spawn player 2 slightly offset
+      console.log('Spawning player 2 at:', spawnX + 50, spawnY, 'in room:', startRoom.id);
+      this.player2 = new Player(this, spawnX + 50, spawnY, 2);
+      this.player2.setTint(0x808080); // Darker tint for player 2
+      
+      // Setup player 2 death event
+      this.events.on('player2Died', this.handlePlayer2Death, this);
+    }
     
     // Setup player death event
     this.events.on('playerDied', this.handlePlayerDeath, this);
@@ -343,8 +398,16 @@ export class MainScene extends Scene {
     console.log('Treasure position (pixels):', treasureX, treasureY);
     console.log('Map bounds:', this.mazeData.mapWidth * tileSize, 'x', this.mazeData.mapHeight * tileSize);
 
-    // Create the treasure
-    this.treasure = new Treasure(this, treasureX, treasureY, this.player);
+    // Create the treasure for player 1
+    this.treasure = new Treasure(this, treasureX, treasureY, this.player, 1);
+    
+    if (this.isMultiplayer && this.player2) {
+      // Create a second treasure for player 2 at a different location
+      const treasureX2 = treasureX + 100; // Offset for visibility
+      const treasureY2 = treasureY + 50;
+      console.log('Spawning treasure 2 at:', treasureX2, treasureY2, 'in room:', goalRoom.id);
+      this.treasure2 = new Treasure(this, treasureX2, treasureY2, this.player2, 2);
+    }
   }
 
   private setupPathfinding() {
@@ -390,7 +453,11 @@ export class MainScene extends Scene {
   private setupCollisions() {
     // Collisions with walls
     if (this.wallsLayer) {
-      this.physics.add.collider(this.player, this.wallsLayer); // Player vs Walls
+      this.physics.add.collider(this.player, this.wallsLayer); // Player 1 vs Walls
+      
+      if (this.isMultiplayer && this.player2) {
+        this.physics.add.collider(this.player2, this.wallsLayer); // Player 2 vs Walls
+      }
     }
 
     if (this.wandManager) {
@@ -609,8 +676,9 @@ export class MainScene extends Scene {
     
     const mainMenuButton = createButton(0, 40, 'MAIN MENU', () => {
       this.closeQuitPopup();
-      this.shutdown();
-      this.scene.start('MenuScene');
+      console.log('Main menu button clicked - reloading page');
+      // Reload the entire page to ensure clean state
+      window.location.reload();
     });
     
     const cancelButton = createButton(0, 100, 'CONTINUE', () => {
@@ -913,12 +981,16 @@ export class MainScene extends Scene {
 
   shutdown() {
     console.log('Shutting down scene');
-    //Clean up player
+    
+    // Clean up players
     if (this.player) {
       this.player.destroy();
     }
+    if (this.player2) {
+      this.player2.destroy();
+    }
 
-    // Clean up managers
+    // Clean up managers for world 1
     if (this.roomManager) {
       this.roomManager.destroy();
     }
@@ -941,7 +1013,30 @@ export class MainScene extends Scene {
       this.treasure.destroy();
       this.treasure = null;
     }
-    // MiniMap removed - no longer needed
+    
+    // Clean up managers for world 2
+    if (this.roomManager2) {
+      this.roomManager2.destroy();
+    }
+    if (this.barrelManager2) {
+      this.barrelManager2.destroy();
+    }
+    if (this.enemyManager2) {
+      this.enemyManager2.destroy();
+    }
+    if (this.itemManager2) {
+      this.itemManager2.destroy();
+    }
+    if (this.wandManager2) {
+      this.wandManager2.destroy();
+    }
+    if (this.movementManager2) {
+      this.movementManager2.destroy();
+    }
+    if (this.treasure2) {
+      this.treasure2.destroy();
+      this.treasure2 = null;
+    }
 
     // Clean up UI elements
     if (this.gameOverText) {
@@ -955,6 +1050,14 @@ export class MainScene extends Scene {
       this.quitPopup = null;
     }
 
+    // Clean up world containers
+    if (this.world1Container) {
+      this.world1Container.destroy();
+    }
+    if (this.world2Container) {
+      this.world2Container.destroy();
+    }
+
     // Clean up input
     if (this.input && this.input.keyboard) {
       this.input.keyboard.removeAllKeys();
@@ -962,20 +1065,466 @@ export class MainScene extends Scene {
 
     // Clean up events
     this.events.removeListener('playerDied', this.handlePlayerDeath, this);
+    this.events.removeListener('player2Died', this.handlePlayer2Death, this);
+    this.events.removeListener('treasureCollected', this.handleMultiplayerWin, this);
 
     // Clean up tilemap layers
     if (this.wallsLayer) {
       this.wallsLayer.destroy();
     }
+    if (this.wallsLayer2) {
+      this.wallsLayer2.destroy();
+    }
 
+    // Reset all references
     this.player = null;
+    this.player2 = null;
     this.roomManager = null;
+    this.roomManager2 = null;
     this.barrelManager = null;
+    this.barrelManager2 = null;
     this.enemyManager = null;
+    this.enemyManager2 = null;
     this.itemManager = null;
+    this.itemManager2 = null;
     this.wandManager = null;
+    this.wandManager2 = null;
     this.movementManager = null;
+    this.movementManager2 = null;
     this.treasure = null;
-    // MiniMap removed - no longer needed
+    this.treasure2 = null;
+    this.world1Container = null;
+    this.world2Container = null;
+    this.camera1 = null;
+    this.camera2 = null;
+    
+    // Reset multiplayer state
+    this.multiplayerGameOver = false;
+    this.player1Won = false;
+    this.player2Won = false;
+  }
+
+  // Multiplayer setup methods
+  private setupMultiplayerWorlds(): void {
+    console.log('Setting up multiplayer worlds...');
+    
+    try {
+      // Setup input first
+      console.log('Setting up input...');
+      this.setupInput();
+      
+      // Setup the map (shared tilemap but we'll have two separate mazes)
+      console.log('Setting up map...');
+      this.setupMap();
+      
+             // Setup both players
+       console.log('Setting up players...');
+       this.setupPlayer();
+      
+      // Setup rooms for both players
+      console.log('Setting up rooms...');
+      this.setupRooms();
+      
+      // Setup treasures for both players
+      console.log('Setting up treasures...');
+      this.setupTreasure();
+      
+      // Setup enemies for both players
+      console.log('Setting up enemies...');
+      this.setupEnemies();
+      
+      // Setup wand managers
+      console.log('Setting up wand managers...');
+      this.setupWandManager();
+      
+      // Setup split-screen cameras
+      console.log('Setting up multiplayer cameras...');
+      this.setupMultiplayerCameras();
+      
+      // Setup physics
+      console.log('Setting up physics...');
+      this.setupPhysics();
+      
+      // Setup pathfinding
+      console.log('Setting up pathfinding...');
+      this.setupPathfinding();
+      
+      // Setup barrels
+      console.log('Setting up barrels...');
+      this.setupBarrels();
+      
+      // Setup potions
+      console.log('Setting up potions...');
+      this.setupPotions();
+      
+      // Setup collisions
+      console.log('Setting up collisions...');
+      this.setupCollisions();
+      
+      // Setup multiplayer-specific events
+      console.log('Setting up multiplayer events...');
+      this.setupMultiplayerEvents();
+      
+      console.log('Multiplayer setup completed successfully!');
+    } catch (error) {
+      console.error('ERROR in setupMultiplayerWorlds:', error);
+    }
+  }
+
+
+
+  private setupMultiplayerCameras(): void {
+    if (!this.isMultiplayer || !this.player2) {
+      // Just setup single camera if not multiplayer
+      this.cameras.main.startFollow(this.player!);
+      this.cameras.main.setZoom(1.5);
+      this.cameras.main.setBounds(0, 0, this.mazeData.mapWidth * 32, this.mazeData.mapHeight * 32);
+      return;
+    }
+    
+    console.log('Setting up split-screen cameras...');
+    
+    // Hide the main camera
+    this.cameras.main.setVisible(false);
+    
+    // Create camera for Player 1 (right side)
+    this.camera1 = this.cameras.add(800, 0, 800, 600);
+    this.camera1.startFollow(this.player!);
+    this.camera1.setZoom(1.5);
+    this.camera1.setBounds(0, 0, this.mazeData.mapWidth * 32, this.mazeData.mapHeight * 32);
+    console.log('Player 1 camera created (right side)');
+    
+    // Create camera for Player 2 (left side)
+    this.camera2 = this.cameras.add(0, 0, 800, 600);
+    this.camera2.startFollow(this.player2);
+    this.camera2.setZoom(1.5);
+    this.camera2.setBounds(0, 0, this.mazeData.mapWidth * 32, this.mazeData.mapHeight * 32);
+    console.log('Player 2 camera created (left side)');
+    
+    // Add divider line between screens
+    const divider = this.add.rectangle(800, 300, 4, 600, 0x000000);
+    divider.setScrollFactor(0);
+    divider.setDepth(1000);
+    console.log('Split-screen divider added');
+  }
+
+
+
+  private setupMultiplayerEvents(): void {
+    // Override treasure collection to handle multiplayer win conditions
+    this.events.off('treasureCollected');
+    
+    // Listen for treasure collection from either player
+    this.events.on('treasureCollected', (playerId: number) => {
+      this.handleMultiplayerWin(playerId);
+    });
+  }
+
+  private handleMultiplayerWin(winnerId: number): void {
+    if (this.multiplayerGameOver) return;
+    
+    this.multiplayerGameOver = true;
+    
+    // Stop both players
+    if (this.player) {
+      this.player.setActive(false);
+      this.player.setVelocity(0, 0);
+    }
+    if (this.player2) {
+      this.player2.setActive(false);
+      this.player2.setVelocity(0, 0);
+    }
+    
+    // Stop cameras
+    this.camera1?.stopFollow();
+    this.camera2?.stopFollow();
+    
+    // Show victory modal for winner and defeat modal for loser
+    if (winnerId === 1) {
+      this.showMultiplayerVictoryModal(1);
+      this.showMultiplayerDefeatModal(2);
+    } else {
+      this.showMultiplayerVictoryModal(2);
+      this.showMultiplayerDefeatModal(1);
+    }
+  }
+
+  private showMultiplayerVictoryModal(playerId: number): void {
+    const camera = playerId === 1 ? this.camera1 : this.camera2;
+    if (!camera) return;
+    
+    const centerX = camera.scrollX + camera.width / 2;
+    const centerY = camera.scrollY + camera.height / 2;
+    
+    // Create overlay
+    const overlay = this.add.rectangle(centerX, centerY, camera.width, camera.height, 0x263238, 0.85);
+    overlay.setDepth(100);
+    
+    // Create frame
+    const frame = this.add.rectangle(centerX, centerY, 400, 250, 0x3E2723);
+    frame.setStrokeStyle(4, 0xFFB300);
+    frame.setDepth(101);
+    
+    // Victory text
+    const titleText = this.add.text(centerX, centerY - 60, 'Victory!', {
+      fontSize: '36px',
+      color: '#FFB300',
+      fontFamily: 'Alagard',
+      stroke: '#2A1A4A',
+      strokeThickness: 3
+    }).setOrigin(0.5).setDepth(102);
+    
+    const subtitleText = this.add.text(centerX, centerY - 20, 'Pleased and Tickled with Thou,\nKing Arthur Shalt Be', {
+      fontSize: '18px',
+      color: '#E0E0E0',
+      fontFamily: 'Alagard',
+      align: 'center'
+    }).setOrigin(0.5).setDepth(102);
+    
+    // Restart button
+    const buttonBg = this.add.rectangle(centerX, centerY + 50, 200, 50, 0x5D4037);
+    buttonBg.setStrokeStyle(2, 0xFFB300);
+    buttonBg.setDepth(102);
+    buttonBg.setInteractive({ useHandCursor: true });
+    
+    const buttonText = this.add.text(centerX, centerY + 50, 'RECOMMENCE QUEST', {
+      fontSize: '18px',
+      color: '#FFC107',
+      fontFamily: 'Alagard'
+    }).setOrigin(0.5).setDepth(103);
+    
+    buttonBg.on('pointerdown', () => {
+      this.shutdown();
+      this.scene.restart({ 
+        chemistryLevel: this.chemistryLevel, 
+        subSubject: this.subSubject,
+        isMultiplayer: this.isMultiplayer
+      });
+    });
+    
+    // Make sure only the correct camera sees this modal
+    if (playerId === 1) {
+      this.camera2?.ignore([overlay, frame, titleText, subtitleText, buttonBg, buttonText]);
+    } else {
+      this.camera1?.ignore([overlay, frame, titleText, subtitleText, buttonBg, buttonText]);
+    }
+  }
+
+  private showMultiplayerDefeatModal(playerId: number): void {
+    const camera = playerId === 1 ? this.camera1 : this.camera2;
+    if (!camera) return;
+    
+    const centerX = camera.scrollX + camera.width / 2;
+    const centerY = camera.scrollY + camera.height / 2;
+    
+    // Create overlay
+    const overlay = this.add.rectangle(centerX, centerY, camera.width, camera.height, 0x263238, 0.85);
+    overlay.setDepth(100);
+    
+    // Create frame
+    const frame = this.add.rectangle(centerX, centerY, 400, 250, 0x3E2723);
+    frame.setStrokeStyle(4, 0x8B0000); // Red border for defeat
+    frame.setDepth(101);
+    
+    // Defeat text
+    const titleText = this.add.text(centerX, centerY - 60, 'Pity, Thou art a Loser!', {
+      fontSize: '28px',
+      color: '#FF0000',
+      fontFamily: 'Alagard',
+      stroke: '#2A1A4A',
+      strokeThickness: 3
+    }).setOrigin(0.5).setDepth(102);
+    
+    const subtitleText = this.add.text(centerX, centerY - 20, 'Thou shalt lead a life of\nimpoverished shame from this day onward!', {
+      fontSize: '16px',
+      color: '#E0E0E0',
+      fontFamily: 'Alagard',
+      align: 'center'
+    }).setOrigin(0.5).setDepth(102);
+    
+    // Restart button
+    const buttonBg = this.add.rectangle(centerX, centerY + 50, 200, 50, 0x5D4037);
+    buttonBg.setStrokeStyle(2, 0x8B0000);
+    buttonBg.setDepth(102);
+    buttonBg.setInteractive({ useHandCursor: true });
+    
+    const buttonText = this.add.text(centerX, centerY + 50, 'TRY AGAIN', {
+      fontSize: '18px',
+      color: '#FF6666',
+      fontFamily: 'Alagard'
+    }).setOrigin(0.5).setDepth(103);
+    
+    buttonBg.on('pointerdown', () => {
+      this.shutdown();
+      this.scene.restart({ 
+        chemistryLevel: this.chemistryLevel, 
+        subSubject: this.subSubject,
+        isMultiplayer: this.isMultiplayer
+      });
+    });
+    
+    // Make sure only the correct camera sees this modal
+    if (playerId === 1) {
+      this.camera2?.ignore([overlay, frame, titleText, subtitleText, buttonBg, buttonText]);
+    } else {
+      this.camera1?.ignore([overlay, frame, titleText, subtitleText, buttonBg, buttonText]);
+    }
+  }
+
+  private handlePlayer1Death(): void {
+    this.handlePlayerDeath(); // Use the existing method for now
+  }
+
+  private handlePlayer2Death(): void {
+    if (this.gameOver || this.multiplayerGameOver) return;
+    
+    // For now, use the same logic as player 1 but for player 2
+    if (!this.player2) return;
+    
+    // Show death popup for player 2
+    console.log('Player 2 died! Implementing respawn...');
+    
+    // Simple respawn after 3 seconds
+    this.time.delayedCall(3000, () => {
+      this.respawnPlayer2();
+    });
+  }
+
+  private showPlayerDeathPopup(playerId: number): void {
+    const camera = playerId === 1 ? this.camera1 : this.camera2;
+    const player = playerId === 1 ? this.player : this.player2;
+    if (!camera || !player) return;
+    
+    const centerX = camera.scrollX + camera.width / 2;
+    const centerY = camera.scrollY + camera.height / 2;
+    
+    // Create semi-transparent overlay
+    const overlay = this.add.rectangle(centerX, centerY, camera.width, camera.height, 0x000000, 0.7);
+    overlay.setDepth(90);
+    
+    // Create popup background
+    const popupBg = this.add.rectangle(centerX, centerY, 350, 200, 0x3E2723);
+    popupBg.setStrokeStyle(3, 0x8B0000);
+    popupBg.setDepth(91);
+    
+    // Death message
+    const deathText = this.add.text(centerX, centerY - 40, 'THY JOURNEY HAS ENDED', {
+      fontSize: '24px',
+      color: '#FF6666',
+      fontFamily: 'Alagard',
+      stroke: '#2A1A4A',
+      strokeThickness: 2
+    }).setOrigin(0.5).setDepth(92);
+    
+    const subtitleText = this.add.text(centerX, centerY, "But don't worry, a new quest\nshall begin very soon", {
+      fontSize: '16px',
+      color: '#E0E0E0',
+      fontFamily: 'Alagard',
+      align: 'center'
+    }).setOrigin(0.5).setDepth(92);
+    
+    const timerText = this.add.text(centerX, centerY + 40, 'Respawning in 3...', {
+      fontSize: '18px',
+      color: '#FFC107',
+      fontFamily: 'Alagard'
+    }).setOrigin(0.5).setDepth(92);
+    
+    // Countdown timer
+    let countdown = 3;
+    const timer = this.time.addEvent({
+      delay: 1000,
+      callback: () => {
+        countdown--;
+        if (countdown > 0) {
+          timerText.setText(`Respawning in ${countdown}...`);
+        }
+      },
+      repeat: 2
+    });
+    
+    // Make sure only the correct camera sees this popup
+    const popupElements = [overlay, popupBg, deathText, subtitleText, timerText];
+    if (playerId === 1) {
+      this.camera2?.ignore(popupElements);
+    } else {
+      this.camera1?.ignore(popupElements);
+    }
+    
+    // Clean up popup after 3 seconds
+    this.time.delayedCall(3000, () => {
+      popupElements.forEach(element => element.destroy());
+    });
+  }
+
+  private respawnPlayer1(): void {
+    if (!this.player || this.multiplayerGameOver) return;
+    
+    // Find start room
+    const startRoom = this.mazeData.rooms.find(r => r.roomType === 'start') || this.mazeData.rooms[0];
+    const tileSize = 32;
+    const spawnX = (startRoom.x + startRoom.width / 2) * tileSize;
+    const spawnY = (startRoom.y + startRoom.height / 2) * tileSize;
+    
+    // Reset player
+    this.player.setPosition(spawnX, spawnY);
+    this.player.setActive(true);
+    this.player.setVisible(true);
+    
+    // Reset health and other stats
+    (this.player as any).resetHealth();
+    (this.player as any).resetWand();
+    (this.player as any).clearInventory();
+    
+    // Re-enable physics
+    const body = this.player.body as Phaser.Physics.Arcade.Body;
+    if (body) {
+      body.setEnable(true);
+      body.setVelocity(0, 0);
+    }
+    
+    // Make health bar visible again
+    (this.player as any).healthBar?.setVisible(true);
+    
+    // Resume camera follow
+    this.camera1?.startFollow(this.player);
+  }
+
+  private respawnPlayer2(): void {
+    if (!this.player2 || this.multiplayerGameOver) return;
+    
+    // Find start room
+    const startRoom = this.mazeData2.rooms.find(r => r.roomType === 'start') || this.mazeData2.rooms[0];
+    const tileSize = 32;
+    const spawnX = (startRoom.x + startRoom.width / 2) * tileSize;
+    const spawnY = (startRoom.y + startRoom.height / 2) * tileSize;
+    
+    // Reset player
+    this.player2.setPosition(spawnX, spawnY);
+    this.player2.setActive(true);
+    this.player2.setVisible(true);
+    
+    // Reset health and other stats
+    (this.player2 as any).resetHealth();
+    (this.player2 as any).resetWand();
+    (this.player2 as any).clearInventory();
+    
+    // Re-enable physics
+    const body = this.player2.body as Phaser.Physics.Arcade.Body;
+    if (body) {
+      body.setEnable(true);
+      body.setVelocity(0, 0);
+    }
+    
+    // Make health bar visible again
+    (this.player2 as any).healthBar?.setVisible(true);
+    
+    // Resume camera follow
+    this.camera2?.startFollow(this.player2);
+  }
+
+  private applyMazeToTilemap(map: Phaser.Tilemaps.Tilemap, mazeData: MazeData): void {
+    // This is a placeholder - the actual implementation would need to 
+    // properly apply the maze data to the tilemap
+    // For now, we'll just use the existing tilemap as-is
   }
 }
