@@ -315,12 +315,20 @@ export class Player extends Physics.Arcade.Sprite {
     console.log(`[PLAYER ${this.playerId}] resetHealth() called - reviving player`);
     this.currentHealth = this.maxHealth;
     console.log(`[PLAYER ${this.playerId}] Health reset to:`, this.currentHealth, '/', this.maxHealth);
-    this.healthBar.setHealth(this.currentHealth, this.maxHealth);
-    // Force health bar to reposition and be visible
-    this.healthBar.forceReposition();
-    console.log(`[PLAYER ${this.playerId}] Calling healthBar.setVisible(true)`);
+    
+    // Make sure health bar is visible first
     this.healthBar.setVisible(true);
-    console.log(`[PLAYER ${this.playerId}] resetHealth() complete`);
+    
+    // Update health bar with current values
+    this.healthBar.setHealth(this.currentHealth, this.maxHealth);
+    
+    // Force health bar to reposition and redraw
+    this.healthBar.forceReposition();
+    
+    // Double-check visibility after repositioning
+    this.healthBar.setVisible(true);
+    
+    console.log(`[PLAYER ${this.playerId}] resetHealth() complete - health should be ${this.currentHealth}/${this.maxHealth}`);
   }
 
   public resetWand(): void {

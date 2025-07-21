@@ -11,8 +11,8 @@ export class MenuScene extends Phaser.Scene {
 
   preload(): void {
     // Load menu-specific assets
-    // For now, we'll create UI elements programmatically
-    // Later we can add background images, etc.
+    this.load.image('menuBg', 'assets/menu-bgs.png');
+    this.load.image('submitMeme', 'assets/SUBMIT.png');
   }
 
   create(): void {
@@ -22,7 +22,9 @@ export class MenuScene extends Phaser.Scene {
     this.initializeSessionStorage();
 
     // Create background
-    this.add.rectangle(0, 0, width, height, 0x263238).setOrigin(0, 0);
+    const bg = this.add.image(0, 0, 'menuBg');
+    bg.setOrigin(0, 0);
+    bg.setDisplaySize(width, height);
 
     // Create ornate border frame
     this.createOrnateFrame();
@@ -120,7 +122,6 @@ export class MenuScene extends Phaser.Scene {
     const buttonData = [
       { text: 'SOLO PLAY', action: () => this.startSoloGame() },
       { text: '2-PLAYER LOCAL', action: () => this.startMultiplayerGame() },
-      { text: 'SETTINGS', action: () => this.openSettings() },
       { text: 'CREDITS', action: () => this.showCredits() }
     ];
 
@@ -284,7 +285,60 @@ export class MenuScene extends Phaser.Scene {
   }
 
   private showCredits(): void {
-    // TODO: Implement credits scene
-    console.log('Credits not yet implemented');
+    const { width, height } = this.cameras.main;
+    
+    // Create credits container
+    const creditsContainer = this.add.container(0, 0);
+    creditsContainer.setDepth(1000);
+    
+    // Create semi-transparent overlay
+    const overlay = this.add.rectangle(width / 2, height / 2, width, height, 0x000000, 0.8);
+    overlay.setInteractive();
+    creditsContainer.add(overlay);
+    
+    // Add the SUBMIT meme image
+    const submitImage = this.add.image(width / 2, height / 2, 'submitMeme');
+    
+    // Scale the image to fit nicely on screen while maintaining aspect ratio
+    const maxWidth = width * 0.8;
+    const maxHeight = height * 0.8;
+    const scaleX = maxWidth / submitImage.width;
+    const scaleY = maxHeight / submitImage.height;
+    const scale = Math.min(scaleX, scaleY, 1); // Don't scale up if already smaller
+    
+    submitImage.setScale(scale);
+    creditsContainer.add(submitImage);
+    
+    // Add close instruction text
+    const closeText = this.add.text(width / 2, height - 50, 'Click anywhere or press ESC to close', {
+      fontFamily: 'Arial, sans-serif',
+      fontSize: '18px',
+      color: '#FFFFFF',
+      stroke: '#000000',
+      strokeThickness: 2
+    });
+    closeText.setOrigin(0.5);
+    creditsContainer.add(closeText);
+    
+    // Close credits function
+    const closeCredits = () => {
+      creditsContainer.destroy();
+      // Re-enable menu interactions
+      this.buttons.forEach(button => button.setInteractive());
+    };
+    
+    // Disable menu buttons while credits are open
+    this.buttons.forEach(button => button.disableInteractive());
+    
+    // Click to close
+    overlay.on('pointerdown', closeCredits);
+    
+    // ESC key to close
+    const escKey = this.input.keyboard?.addKey(Phaser.Input.Keyboard.KeyCodes.ESC);
+    const escListener = () => {
+      closeCredits();
+      escKey?.off('down', escListener);
+    };
+    escKey?.on('down', escListener);
   }
 } 

@@ -25,11 +25,18 @@ export class ChemistryLevelSelectScene extends Phaser.Scene {
     super({ key: 'ChemistryLevelSelectScene' });
   }
 
+  preload(): void {
+    // Load background image
+    this.load.image('menuBg', 'assets/menu-bgs.png');
+  }
+
   create(): void {
     const { width, height } = this.cameras.main;
 
     // Create background
-    this.add.rectangle(0, 0, width, height, 0x263238).setOrigin(0, 0);
+    const bg = this.add.image(0, 0, 'menuBg');
+    bg.setOrigin(0, 0);
+    bg.setDisplaySize(width, height);
 
     // Create ornate frame
     this.createOrnateFrame();
@@ -45,9 +52,6 @@ export class ChemistryLevelSelectScene extends Phaser.Scene {
 
     // Setup keyboard navigation
     this.setupKeyboardNavigation();
-
-    // Add back button
-    this.createBackButton();
   }
 
   private createOrnateFrame(): void {
@@ -85,8 +89,8 @@ export class ChemistryLevelSelectScene extends Phaser.Scene {
 
   private createLevelCards(): void {
     const { width, height } = this.cameras.main;
-    const cardWidth = 220;
-    const cardHeight = 280;
+    const cardWidth = 180; // Reduced from 220
+    const cardHeight = 240; // Reduced from 280
     const spacing = 40;
     const totalWidth = (cardWidth * this.levels.length) + (spacing * (this.levels.length - 1));
     const startX = (width - totalWidth) / 2 + cardWidth / 2;
@@ -122,34 +126,34 @@ export class ChemistryLevelSelectScene extends Phaser.Scene {
     // Card icon (placeholder - could be replaced with actual icons)
     const iconBg = this.add.graphics();
     iconBg.fillStyle(level.color, 0.3);
-    iconBg.fillCircle(0, -50, 40);
+    iconBg.fillCircle(0, -40, 30); // Reduced from 40
     iconBg.lineStyle(3, level.color, 1);
-    iconBg.strokeCircle(0, -50, 40);
+    iconBg.strokeCircle(0, -40, 30);
 
     // Icon symbol
     const symbols = ['⚗️', '🧪', '🧬'];
-    const icon = this.add.text(0, -50, symbols[index], {
-      fontSize: '32px'
+    const icon = this.add.text(0, -40, symbols[index], {
+      fontSize: '24px' // Reduced from 32px
     });
     icon.setOrigin(0.5);
 
     // Level name
-    const nameText = this.add.text(0, 20, level.name.toUpperCase(), {
+    const nameText = this.add.text(0, 15, level.name.toUpperCase(), {
       fontFamily: 'Arial, sans-serif',
-      fontSize: '20px',
+      fontSize: '16px', // Reduced from 20px
       color: '#FFFFFF',
       align: 'center',
-      wordWrap: { width: width - 40 }
+      wordWrap: { width: width - 30 }
     });
     nameText.setOrigin(0.5);
 
     // Level description
-    const descText = this.add.text(0, 60, level.description, {
+    const descText = this.add.text(0, 50, level.description, {
       fontFamily: 'Arial, sans-serif',
-      fontSize: '14px',
+      fontSize: '12px', // Reduced from 14px
       color: '#E0E0E0',
       align: 'center',
-      wordWrap: { width: width - 40 }
+      wordWrap: { width: width - 30 }
     });
     descText.setOrigin(0.5);
 
@@ -181,14 +185,16 @@ export class ChemistryLevelSelectScene extends Phaser.Scene {
       const bg = card.getData('bg') as Phaser.GameObjects.Graphics;
       const iconBg = card.getData('iconBg') as Phaser.GameObjects.Graphics;
       const levelData = card.getData('levelData');
+      const cardWidth = 180;
+      const cardHeight = 240;
 
       if (i === index) {
         // Selected state
         bg.clear();
         bg.fillStyle(0x4A148C, 1);
-        bg.fillRoundedRect(-110, -140, 220, 280, 15);
+        bg.fillRoundedRect(-cardWidth/2, -cardHeight/2, cardWidth, cardHeight, 15);
         bg.lineStyle(5, levelData.color, 1);
-        bg.strokeRoundedRect(-110, -140, 220, 280, 15);
+        bg.strokeRoundedRect(-cardWidth/2, -cardHeight/2, cardWidth, cardHeight, 15);
 
         // Animate selection
         this.tweens.add({
@@ -203,16 +209,16 @@ export class ChemistryLevelSelectScene extends Phaser.Scene {
         // Add glow effect
         iconBg.clear();
         iconBg.fillStyle(levelData.color, 0.5);
-        iconBg.fillCircle(0, -50, 45);
+        iconBg.fillCircle(0, -40, 35);
         iconBg.lineStyle(4, levelData.color, 1);
-        iconBg.strokeCircle(0, -50, 45);
+        iconBg.strokeCircle(0, -40, 35);
       } else {
         // Normal state
         bg.clear();
         bg.fillStyle(0x3E2723, 0.9);
-        bg.fillRoundedRect(-110, -140, 220, 280, 15);
+        bg.fillRoundedRect(-cardWidth/2, -cardHeight/2, cardWidth, cardHeight, 15);
         bg.lineStyle(4, levelData.color, 0.8);
-        bg.strokeRoundedRect(-110, -140, 220, 280, 15);
+        bg.strokeRoundedRect(-cardWidth/2, -cardHeight/2, cardWidth, cardHeight, 15);
 
         this.tweens.add({
           targets: card,
@@ -225,9 +231,9 @@ export class ChemistryLevelSelectScene extends Phaser.Scene {
 
         iconBg.clear();
         iconBg.fillStyle(levelData.color, 0.3);
-        iconBg.fillCircle(0, -50, 40);
+        iconBg.fillCircle(0, -40, 30);
         iconBg.lineStyle(3, levelData.color, 1);
-        iconBg.strokeCircle(0, -50, 40);
+        iconBg.strokeCircle(0, -40, 30);
       }
     });
   }
@@ -236,36 +242,12 @@ export class ChemistryLevelSelectScene extends Phaser.Scene {
     const { width, height } = this.cameras.main;
 
     const instructions = this.add.text(width / 2, height - 60, 
-      'Use ARROW KEYS to select • ENTER to confirm • ESC to return', {
+      'Use ARROW KEYS to select • ENTER to confirm', {
       fontFamily: 'Arial, sans-serif',
       fontSize: '16px',
       color: '#00BCD4'
     });
     instructions.setOrigin(0.5);
-  }
-
-  private createBackButton(): void {
-    const backButton = this.add.text(60, 60, '← BACK', {
-      fontFamily: 'Arial, sans-serif',
-      fontSize: '20px',
-      color: '#FFB300'
-    });
-    backButton.setOrigin(0.5);
-    backButton.setInteractive();
-
-    backButton.on('pointerover', () => {
-      backButton.setScale(1.1);
-      backButton.setColor('#FFFFFF');
-    });
-
-    backButton.on('pointerout', () => {
-      backButton.setScale(1);
-      backButton.setColor('#FFB300');
-    });
-
-    backButton.on('pointerdown', () => {
-      this.scene.start('MenuScene');
-    });
   }
 
   private setupKeyboardNavigation(): void {
@@ -281,10 +263,6 @@ export class ChemistryLevelSelectScene extends Phaser.Scene {
 
     this.input.keyboard?.on('keydown-ENTER', () => {
       this.confirmSelection();
-    });
-
-    this.input.keyboard?.on('keydown-ESC', () => {
-      this.scene.start('MenuScene');
     });
   }
 

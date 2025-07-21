@@ -14,6 +14,11 @@ export class SubSubjectSelectScene extends Phaser.Scene {
     this.chemistryLevel = data.chemistryLevel;
   }
 
+  preload(): void {
+    // Load background image
+    this.load.image('menuBg', 'assets/menu-bgs.png');
+  }
+
   create(): void {
     const { width, height } = this.cameras.main;
 
@@ -22,7 +27,9 @@ export class SubSubjectSelectScene extends Phaser.Scene {
     this.selectedSubjectIndex = 0;
 
     // Create background
-    this.add.rectangle(0, 0, width, height, 0x263238).setOrigin(0, 0);
+    const bg = this.add.image(0, 0, 'menuBg');
+    bg.setOrigin(0, 0);
+    bg.setDisplaySize(width, height);
 
     // Create ornate frame
     this.createOrnateFrame();
@@ -51,22 +58,19 @@ export class SubSubjectSelectScene extends Phaser.Scene {
       'High School Chem 1': [
         'Reaction Types',
         'Gas Reactions', 
-        'Stoichiometry',
-        'Acid-Base Chemistry',
+        'Basic Stoichiometry',
         'Random'
       ],
       'Organic Chemistry': [
-        'Basic Organic Reactions',
         'Functional Groups',
-        'Reaction Mechanisms',
-        'Synthesis',
+        'Basic Organic Reactions',
+        'Stereochemistry',
         'Random'
       ],
       'Biochemistry': [
-        'Protein Chemistry',
+        'Amino Acids and Proteins',
         'Enzyme Kinetics',
-        'Metabolism',
-        'Molecular Biology',
+        'Metabolic Pathways',
         'Random'
       ]
     };

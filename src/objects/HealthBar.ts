@@ -145,7 +145,13 @@ export class HealthBar {
     this.maxHealth = max;
     
     if (this.isPlayerBar) {
-      console.log('[PLAYER HEALTHBAR] setHealth called, previous:', previousHealth, 'current:', current);
+      console.log('[PLAYER HEALTHBAR] setHealth called, previous:', previousHealth, 'current:', current, 'max:', max);
+    }
+    
+    // Force a redraw by resetting the lastDrawnHealth if this is a respawn scenario
+    if (this.isPlayerBar && current === max && current > 0) {
+      console.log('[PLAYER HEALTHBAR] Detected full health restore (respawn), forcing redraw');
+      this.lastDrawnHealth = -1; // Force redraw
     }
     
     // Add visual feedback for health changes
@@ -258,10 +264,12 @@ export class HealthBar {
       return;
     }
     
-    // Skip redraw if health hasn't changed
-    if (this.lastDrawnHealth === this.currentHealth && this.bar.scene) {
-      // Force redraw for debugging
-      // return;
+    // Skip redraw if health hasn't changed (unless forced by lastDrawnHealth = -1)
+    if (this.lastDrawnHealth === this.currentHealth && this.lastDrawnHealth !== -1 && this.bar.scene) {
+      if (this.isPlayerBar) {
+        console.log('[PLAYER HEALTHBAR] Skipping redraw - health unchanged:', this.currentHealth);
+      }
+      return;
     }
     
     if (this.isPlayerBar) {
