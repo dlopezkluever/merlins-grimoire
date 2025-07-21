@@ -255,7 +255,9 @@ export class EnemyManager {
     enemyInstance.takeDamage(spellInstance.getDamage());
   }
 
-  private handlePlayerEnemyOverlap = (enemy: Enemy, player: Player): void => {
+  private handlePlayerEnemyOverlap = (obj1: any, obj2: any): void => {
+    const enemy = obj1 as Enemy;
+    const player = obj2 as Player;
     debugLog('Player-Enemy overlap detected:', player.constructor.name, 'vs', enemy.constructor.name);
     
     // Check if enemy is active using the active property
