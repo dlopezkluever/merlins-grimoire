@@ -11,9 +11,9 @@ import { WandManager } from '../wands/WandManager';
 import { EnemySpawner } from './EnemySpawner';
 
 export class EnemyManager {
-  private scene: Scene;
+  protected scene: Scene;
   private enemies: Phaser.Physics.Arcade.Group;
-  private player: Player;
+  protected player: Player;
 
   constructor(scene: Scene, player: Player) {
     this.scene = scene;
@@ -198,7 +198,7 @@ export class EnemyManager {
   }
 
   // Handles collision between enemy spells and the player
-  private handlePlayerSpellCollision(player: any, spell: any) {
+  protected handlePlayerSpellCollision(player: any, spell: any) {
     const playerInstance = player as Player;
     const spellInstance = spell as PlainSpell;
 
@@ -229,7 +229,7 @@ export class EnemyManager {
     enemyInstance.takeDamage(spellInstance.getDamage());
   }
 
-  private handlePlayerEnemyOverlap = (obj1: any, obj2: any): void => {
+  protected handlePlayerEnemyOverlap = (obj1: any, obj2: any): void => {
     const enemy = obj1 as Enemy;
     const player = obj2 as Player;
     
@@ -254,6 +254,10 @@ export class EnemyManager {
 
   public getEnemies(): Enemy[] {
     return this.enemies.getChildren() as Enemy[];
+  }
+
+  public getEnemiesGroup(): Phaser.Physics.Arcade.Group {
+    return this.enemies;
   }
 
   public getClosestPlayer(enemyX: number, enemyY: number): Player | null {

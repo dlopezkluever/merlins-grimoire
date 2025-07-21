@@ -52,7 +52,7 @@ export class MainScene extends Scene {
     this.pathfindingGrid = PathfindingGrid.getInstance();
   }
 
-  init(data: { chemistryLevel?: string; subSubject?: string; isMultiplayer?: boolean }): void {
+  init(data: { chemistryLevel?: string; subSubject?: string }): void {
     this.chemistryLevel = data.chemistryLevel || '';
     this.subSubject = data.subSubject || '';
     console.log('Starting single-player game with:', this.chemistryLevel, '-', this.subSubject);
@@ -863,7 +863,7 @@ export class MainScene extends Scene {
     this.gameOver = true;
   }
 
-  private handleWin(): void {
+  protected handleWin(): void {
     if (this.gameOver) return;
 
     // PROPERLY stop all player movement and physics
@@ -1086,8 +1086,7 @@ export class MainScene extends Scene {
     }
 
     // Clean up events
-          this.events.removeAllListeners('playerDied');
-      this.events.removeAllListeners('player2Died');
+    this.events.removeAllListeners('playerDied');
 
     // Clean up tilemap layers
     if (this.wallsLayer) {

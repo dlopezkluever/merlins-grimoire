@@ -6,10 +6,10 @@ import { Player } from "../player/Player";
 import { MazeData, MazeRoom } from "../maze/MazeGenerator";
 
 export class RoomManager {
-  private scene: Scene;
-  private rooms: Map<string, Room>;
+  protected scene: Scene;
+  protected rooms: Map<string, Room>;
   private currentRoom: Room | null = null;
-  private player: Player;
+  protected player: Player;
 
   constructor(scene: Scene, player: Player) {
     this.scene = scene;
@@ -183,7 +183,7 @@ export class RoomManager {
 
   private lastRoomChange: number = 0;
   
-  private handleRoomEntry(room: Room) {
+  protected handleRoomEntry(room: Room) {
     // Debounce room entry logs to reduce spam
     if (this.currentRoom === room) {
       return; // Already in this room

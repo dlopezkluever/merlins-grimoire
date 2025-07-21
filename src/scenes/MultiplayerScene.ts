@@ -1,13 +1,12 @@
 import { MainScene } from './MainScene';
 import { Player } from '../objects/player/Player';
-
-const DEBUG_MULTIPLAYER = true; // Keep on for setup debugging
-
-function debugLog(message: string, ...args: any[]) {
-  if (DEBUG_MULTIPLAYER) {
-    console.log(`[MULTIPLAYER DEBUG] ${message}`, ...args);
-  }
-}
+import { MultiplayerEnemyManager } from '../objects/enemy/MultiplayerEnemyManager';
+import { MultiplayerBarrelManager } from '../objects/props/MultiplayerBarrelManager';
+import { MultiplayerItemManager } from '../objects/items/MultiplayerItemManager';
+import { MultiplayerRoomManager } from '../objects/rooms/MultiplayerRoomManager';
+import { MultiplayerWandManager } from '../objects/wands/MultiplayerWandManager';
+import { MultiplayerTreasure } from '../objects/items/MultiplayerTreasure';
+import { MovementManager } from '../objects/enemy/MovementManager';
 
 export class MultiplayerScene extends MainScene {
   // Multiplayer-specific properties
@@ -19,10 +18,9 @@ export class MultiplayerScene extends MainScene {
     super('MultiplayerScene');
   }
 
-  init(data: { chemistryLevel?: string; subSubject?: string; isMultiplayer?: boolean }): void {
+  init(data: any): void {
     // Always set isMultiplayer to true for this scene
     super.init({ ...data, isMultiplayer: true });
-    debugLog('MultiplayerScene initialized');
   }
 
   // Override setupPlayer to add player2
@@ -59,8 +57,6 @@ export class MultiplayerScene extends MainScene {
     this.events.on('player2Died', (player: Player) => {
       this.handlePlayerDeath(player);
     });
-
-    debugLog('Player 2 created and setup complete');
   }
 
   // Override setupCamera to add split-screen
@@ -77,8 +73,6 @@ export class MultiplayerScene extends MainScene {
       height: this.mazeData.mapHeight * 32
     };
 
-    debugLog('Setting up multiplayer mode - FULL 1600x600');
-    
     // Resize canvas to 1600x600 for multiplayer
     const screenWidth = 1600;
     const screenHeight = 600;
@@ -92,105 +86,122 @@ export class MultiplayerScene extends MainScene {
     this.cameras.main.startFollow(this.player);
     this.cameras.main.setZoom(1.5);
     this.cameras.main.setBounds(worldBounds.x, worldBounds.y, worldBounds.width, worldBounds.height);
-    debugLog('Player 1 camera (main) configured:', {
-      viewport: { x: halfWidth, y: 0, width: halfWidth, height: screenHeight },
-      bounds: worldBounds,
-      zoom: 1.5
-    });
 
     // Create left camera for Player 2
     this.camera2 = this.cameras.add(0, 0, halfWidth, screenHeight);
     this.camera2.startFollow(this.player2);
     this.camera2.setZoom(1.5);
     this.camera2.setBounds(worldBounds.x, worldBounds.y, worldBounds.width, worldBounds.height);
-    debugLog('Player 2 camera created:', {
-      viewport: { x: 0, y: 0, width: halfWidth, height: screenHeight },
-      bounds: worldBounds,
-      zoom: 1.5
-    });
 
     // Simple divider line
     const divider = this.add.rectangle(halfWidth, screenHeight / 2, 2, screenHeight, 0x000000);
     divider.setScrollFactor(0);
     divider.setDepth(1000);
-    debugLog('Simple divider created');
-    
-    debugLog('Simplified multiplayer setup complete');
   }
 
-  // Override other setup methods to add player2
+  // Override manager creation methods to use multiplayer versions
   protected setupRooms(): void {
-    super.setupRooms();
+    // Create multiplayer room manager instead of single-player
+    this.roomManager = new MultiplayerRoomManager(this, this.player);
+    this.roomManager.initializeRoomsFromMazeData(this.mazeData);
     
     // Add player2 to room manager
     if (this.player2) {
-      debugLog('Adding Player 2 to game systems');
-      (this.roomManager as any).addPlayer(this.player2);
-      debugLog('Player 2 added to room manager');
+      (this.roomManager as MultiplayerRoomManager).addPlayer(this.player2);
     }
+
+    // Listen for room state changes
+    this.events.on('room-state-changed', (room: any, state: any) => {
+      // Win condition: clear the end room
+      if (room.getId() === this.mazeData.endRoomId && state === 'ROOM_CLEARED') {
+        console.log('You found and cleared the final room! Victory!');
+        this.handleWin();
+      }
+    });
+    
+    console.log('End room ID:', this.mazeData.endRoomId);
   }
 
   protected setupWandManager(): void {
-    super.setupWandManager();
+    // Create multiplayer wand manager
+    this.wandManager = new MultiplayerWandManager(this, this.player);
+    this.wandManager.setupProceduralWandUpgrades(this.getRoomManager().getRooms());
     
     // Add player2 to wand manager
     if (this.player2) {
-      debugLog('Adding Player 2 to wand manager');
-      (this.wandManager as any).addPlayer(this.player2);
-      debugLog('Player 2 added to wand manager');
+      (this.wandManager as MultiplayerWandManager).addPlayer(this.player2);
     }
   }
 
   protected setupTreasure(): void {
-    super.setupTreasure();
+    if (!this.player || !this.mazeData || !this.mazeData.endRoomId) {
+      console.warn('Cannot setup treasure: missing player, maze data, or end room ID');
+      return;
+    }
+
+    // Find the goal room
+    const goalRoom = this.mazeData.rooms.find(room => room.id === this.mazeData.endRoomId);
+    if (!goalRoom) {
+      console.warn('Goal room not found for treasure placement');
+      return;
+    }
+
+    // Calculate treasure position in the center of the goal room (convert to pixel coordinates)
+    const tileSize = 32;
+    const treasureX = (goalRoom.x + goalRoom.width / 2) * tileSize;
+    const treasureY = (goalRoom.y + goalRoom.height / 2) * tileSize;
+
+    // Create multiplayer treasure
+    this.treasure = new MultiplayerTreasure(this, treasureX, treasureY, this.player);
     
     // Add player2 to treasure
     if (this.player2 && this.treasure) {
-      (this.treasure as any).addPlayer(this.player2);
+      (this.treasure as MultiplayerTreasure).addPlayer(this.player2);
     }
   }
 
   protected setupBarrels(): void {
-    super.setupBarrels();
+    // Create multiplayer barrel manager
+    this.barrelManager = new MultiplayerBarrelManager(this, this.player);
+    this.barrelManager.createProceduralBarrels(this.getRoomManager().getRooms());
     
     // Add player2 to barrel manager
     if (this.player2) {
-      (this.barrelManager as any).addPlayer(this.player2);
+      (this.barrelManager as MultiplayerBarrelManager).addPlayer(this.player2);
     }
   }
 
   protected setupPotions(): void {
-    super.setupPotions();
+    // Create multiplayer item manager
+    this.itemManager = new MultiplayerItemManager(this, this.player);
+    this.itemManager.setSpawnPoints(this.getRoomManager().getRooms());
     
     // Add player2 to item manager
     if (this.player2) {
-      (this.itemManager as any).addPlayer(this.player2);
+      (this.itemManager as MultiplayerItemManager).addPlayer(this.player2);
     }
   }
 
   protected setupEnemies(): void {
-    super.setupEnemies();
+    this.movementManager = new MovementManager(this, this.player);
     
-    // Add Player 2 to enemy manager
+    // Create multiplayer enemy manager
+    this.enemyManager = new MultiplayerEnemyManager(this, this.player);
+    this.enemyManager.setupProceduralEnemies(this.getRoomManager().getRooms());
+    
+    // Add player2 to enemy manager
     if (this.player2) {
-      debugLog('Adding Player 2 to enemy manager in setupEnemies');
-      (this.enemyManager as any).addPlayer(this.player2);
-      debugLog('Player 2 added to enemy manager in setupEnemies');
+      (this.enemyManager as MultiplayerEnemyManager).addPlayer(this.player2);
     }
     
-    // Setup random targeting for multiplayer
-    if (this.player2) {
-      // Add a method to the scene that enemies can use to get a random target
-      (this as any).getRandomPlayer = () => {
-        // 50/50 chance to target either player
-        return Math.random() < 0.5 ? this.player : this.player2;
-      };
-      
-      // Also provide a method to get all players
-      (this as any).getAllPlayers = () => {
-        return [this.player, this.player2];
-      };
-    }
+    // Override targeting methods for multiplayer
+    (this as any).getRandomPlayer = () => {
+      return Math.random() < 0.5 ? this.player : this.player2;
+    };
+    
+    (this as any).getAllPlayers = () => {
+      return [this.player, this.player2].filter(p => p !== null);
+    };
   }
 
   protected setupCollisions(): void {
@@ -344,27 +355,6 @@ export class MultiplayerScene extends MainScene {
     super.create();
     
     // Debug summary for multiplayer
-    debugLog('=== MULTIPLAYER SETUP SUMMARY ===');
-    debugLog('Canvas size:', this.game.canvas.width, 'x', this.game.canvas.height);
-    debugLog('Scale size:', this.scale.gameSize.width, 'x', this.scale.gameSize.height);
-    debugLog('Player 1 position:', this.player.x, this.player.y);
-    debugLog('Player 2 position:', this.player2?.x, this.player2?.y);
-    debugLog('Main camera viewport:', {
-      x: this.cameras.main.x, 
-      y: this.cameras.main.y, 
-      width: this.cameras.main.width, 
-      height: this.cameras.main.height
-    });
-    debugLog('Camera2 viewport:', this.camera2 ? {
-      x: this.camera2.x, 
-      y: this.camera2.y, 
-      width: this.camera2.width, 
-      height: this.camera2.height
-    } : 'NOT_CREATED');
-    debugLog('Total children in scene:', this.children.length);
-    debugLog('Players in scene:', this.children.list.filter(child => child.type === 'Sprite' && (child as any).texture?.key?.includes?.('player')).length);
-    debugLog('Barrels in scene:', this.children.list.filter(child => (child as any).texture?.key?.includes?.('barrel')).length);
-    debugLog('=== END SUMMARY ===');
   }
 
   // Override shutdown to clean up player2

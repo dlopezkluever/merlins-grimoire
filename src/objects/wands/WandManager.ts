@@ -8,9 +8,9 @@ import { Wand } from "./Wand";
 import { Room } from "../rooms/Room";
 
 export class WandManager {
-  private player: Player;
-  private scene: Scene;
-  private wandUpgrades: WandUpgrade[] = [];
+  protected player: Player;
+  protected scene: Scene;
+  protected wandUpgrades: WandUpgrade[] = [];
   public static readonly SWAPPED_EVENT = 'wand-swapped';
 
   constructor(scene: Scene, player: Player) {
@@ -112,7 +112,7 @@ export class WandManager {
     }
   }
 
-  private onEnterUpgradeArea(player: any, upgrade: any): void {
+  protected onEnterUpgradeArea(player: any, upgrade: any): void {
     // Use the player that actually touched the upgrade
     const playerInstance = player as Player;
     if (!playerInstance) return;

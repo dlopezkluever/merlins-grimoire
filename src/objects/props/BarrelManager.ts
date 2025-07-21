@@ -5,9 +5,9 @@ import { Player } from '../player/Player';
 import { WandUpgrade } from '../wands/WandUpgrade';
 import { WandManager } from '../wands/WandManager';
 export class BarrelManager {
-  private scene: Scene;
-  private barrels: Phaser.Physics.Arcade.Group;
-  private player: Player;
+  protected scene: Scene;
+  protected barrels: Phaser.Physics.Arcade.Group;
+  protected player: Player;
 
   constructor(scene: Scene, player: Player) {
     this.scene = scene;
@@ -172,7 +172,7 @@ export class BarrelManager {
     }
   }
 
-  private handleBarrelCollision(player: any, barrel: any): void {
+  protected handleBarrelCollision(player: any, barrel: any): void {
     if (barrel instanceof Barrel && player instanceof Player) {
       if (!barrel.isBarrelSmashed()) {
         barrel.smash();

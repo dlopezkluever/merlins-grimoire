@@ -13,13 +13,7 @@ import { SpellBot } from '../items/SpellBot';
 import { MainScene } from '../../scenes/MainScene';
 
 // Add at the top
-const DEBUG_PLAYER = false; // Reduced to prevent log spam
 
-function debugLog(message: string, ...args: any[]) {
-  if (DEBUG_PLAYER) {
-    console.log(`[PLAYER DEBUG] ${message}`, ...args);
-  }
-}
 
 // Extend Physics.Arcade.Sprite for physics and preUpdate
 export class Player extends Physics.Arcade.Sprite {
@@ -59,14 +53,6 @@ export class Player extends Physics.Arcade.Sprite {
     this.setupUI(scene);
     this.setupEventListeners(scene);
     this.setupAnimations(scene);
-
-    debugLog(`Player ${this.playerId} created at position:`, x, y);
-    debugLog(`Player ${this.playerId} physics body:`, this.body ? 'EXISTS' : 'MISSING');
-    if (this.body) {
-      const body = this.body as Phaser.Physics.Arcade.Body;
-      debugLog(`Player ${this.playerId} body size:`, body.width, 'x', body.height);
-      debugLog(`Player ${this.playerId} body position:`, body.x, body.y);
-    }
   }
 
   private setupPhysics(scene: Scene): void {
@@ -136,7 +122,7 @@ export class Player extends Physics.Arcade.Sprite {
       console.log(`[PLAYER ${this.playerId}] WARNING: Health bar already exists! Destroying old one.`);
       this.healthBar.destroy();
     }
-    this.healthBar = new HealthBar(scene, this, 150, 10, true, this.playerId);
+    this.healthBar = new HealthBar(scene, this, 150, 10, true);
     this.healthBar.setHealth(this.currentHealth, this.maxHealth);
 
     // Initialize weapon overlay
@@ -293,12 +279,7 @@ export class Player extends Physics.Arcade.Sprite {
       const isMoving = this.cursors.left.isDown || this.cursors.right.isDown || 
                       this.cursors.up.isDown || this.cursors.down.isDown;
       
-      if (isMoving) {
-        debugLog(`Player ${this.playerId} moving:`, {
-          position: { x: Math.round(this.x), y: Math.round(this.y) },
-          velocity: this.body ? { x: Math.round((this.body as any).velocity.x), y: Math.round((this.body as any).velocity.y) } : 'NO_BODY'
-        });
-      }
+
     }
   }
 

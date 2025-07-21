@@ -1,17 +1,10 @@
 import { Scene, GameObjects, Physics } from 'phaser';
 import { Player } from '../player/Player';
 
-const DEBUG_TREASURE = false; // Reduced to prevent log spam
 
-function debugLog(message: string, ...args: any[]) {
-  if (DEBUG_TREASURE) {
-    console.log(`[TREASURE DEBUG] ${message}`, ...args);
-  }
-}
 
 export class Treasure extends Physics.Arcade.Sprite {
-  private player: Player | null = null;
-  private players: Player[] = [];
+  private player: Player;
   private isOpening: boolean = false;
   private isOpened: boolean = false;
   private animationFrames: string[] = [];
@@ -22,8 +15,6 @@ export class Treasure extends Physics.Arcade.Sprite {
     super(scene, x, y, 'treasure-layer-1');
     
     this.player = player;
-    this.players = [player];
-    debugLog('Treasure created at position:', x, y, 'with player:', player.constructor.name);
     
     // Initialize animation frames array
     for (let i = 1; i <= 8; i++) {
@@ -46,36 +37,20 @@ export class Treasure extends Physics.Arcade.Sprite {
     this.setOrigin(0.5, 0.5);
     
     // Set up collision with player
-    if (this.player) {
-      debugLog('Setting up treasure collision with primary player');
-      scene.physics.add.overlap(this, this.player, this.onPlayerTouch, undefined, this);
-    } else {
-      console.error('❌ No player reference provided to treasure!');
-    }
+    scene.physics.add.overlap(this, this.player, this.onPlayerTouch, undefined, this);
   }
 
-  public addPlayer(player: Player): void {
-    this.players.push(player);
-    debugLog('Adding player to treasure:', player.constructor.name, 'Total players:', this.players.length);
-    
-    // Set up collision for the new player
-    this.scene.physics.add.overlap(this, player, this.onPlayerTouch, undefined, this);
-    debugLog('Treasure collision set up for new player');
-  }
+
 
   private currentTouchingPlayer: Player | null = null;
 
-  private onPlayerTouch = (treasure: any, player: any): void => {
-    debugLog('onPlayerTouch called with player:', player.constructor.name);
-    
+  protected onPlayerTouch = (treasure: any, player: any): void => {
     if (this.isOpening || this.isOpened) {
-      debugLog('Treasure already opening/opened, ignoring touch');
       return; // Already opening or opened
     }
     
     // Store which player touched the treasure
     this.currentTouchingPlayer = player as Player;
-    debugLog('Player touching treasure:', this.currentTouchingPlayer.constructor.name);
     
     this.startOpeningAnimation();
   }
@@ -144,8 +119,6 @@ export class Treasure extends Physics.Arcade.Sprite {
   }
 
   public isPlayerNear(): boolean {
-    if (!this.player) return false;
-    
     const distance = Phaser.Math.Distance.Between(
       this.x, this.y,
       this.player.x, this.player.y

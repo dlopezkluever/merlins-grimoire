@@ -7,10 +7,10 @@ import { ItemType } from './ItemType';
 import { SparkBoost } from './SparkBoost';
 
 export class ItemManager {
-  private scene: Scene;
-  private potions: Phaser.Physics.Arcade.Group;
-  private powerups: Phaser.Physics.Arcade.Group;
-  private player: Player;
+  protected scene: Scene;
+  protected potions: Phaser.Physics.Arcade.Group;
+  protected powerups: Phaser.Physics.Arcade.Group;
+  protected player: Player;
   private maxPotions: number = 3;
   private maxPowerups: number = 2;
   private roomsToSpawnItems: { [key: string]: ItemType[] } = {
