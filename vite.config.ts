@@ -3,7 +3,7 @@ import { resolve } from 'path';
 import { copy } from 'fs-extra';
 
 export default defineConfig({
-  base: process.env.NODE_ENV === 'production' ? '/merlins-grimoire/' : '/',
+  base: '/',
   server: {
     host: true,
     port: 3000,
