@@ -1,0 +1,10 @@
+
+as of 8.8.2025:
+
+I thought our most complete project was found in multiplayer-broke-same-world (current)
+So I saved our old, only single player, no main menu having and kinda buggy main as  old-version/only-single-player
+And then I overwrote main to have it be exactly like multiplayer-broke-same-world.. thus main is now ready to go.
+
+however, multiplayer-seperate-worlds has potential, and could be worth putting in it's own github, as the differences are too significant to merge
+but it could also be worht referencing, espeically if we decide to go with different worlds (dif maps) for multiplayer
+
